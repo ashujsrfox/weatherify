@@ -13,7 +13,7 @@ A modern, responsive weather application built with vanilla HTML, CSS, and JavaS
 
 ## Live Demo
 
-[View the live demo here](https://ashujsrfox.github.io/weather-app/)
+[View the live demo here](https://ashujsrfox.github.io/weatherify/)
 
 ## Technologies Used
 
@@ -128,6 +128,4 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - Weather icons provided by [OpenWeatherMap](https://openweathermap.org/weather-conditions)
 - Glassmorphism design inspiration from modern UI trends
 
-## Contact
-
-Project Link: [https://github.com/ashujsrfox/weather-app](https://github.com/ashujsrfox/weather-app)
+Project Link: (https://ashujsrfox.github.io/weatherify/)
