@@ -36,7 +36,7 @@ Preferred reporting options:
 - Create a private issue in this repository titled "Code of Conduct incident" (maintainers will handle it confidentially), or
 - Contact the maintainers directly:
   - GitHub: @ashujsrfox
-  - Maintainers: (replace with preferred contact email(s)): maintainer@example.com
+  - Maintainers: ashutoshjsr2016@gmail.com
 
 When reporting, please include:
 - A clear description of the behavior that violated the Code of Conduct
