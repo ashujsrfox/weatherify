@@ -121,7 +121,7 @@ function hideSuggestions() {
 
 // Initialize with default city
 window.addEventListener('DOMContentLoaded', () => {
-    fetchWeatherData('London');
+    detectUserLocation();
 });
 
 function handleSearch() {
@@ -130,7 +130,50 @@ function handleSearch() {
         fetchWeatherData(city);
     }
 }
+function detectUserLocation() {
+    if (!navigator.geolocation) {
+        fetchWeatherData('London');
+        return;
+    }
 
+    navigator.geolocation.getCurrentPosition(
+        (position) => {
+            const { latitude, longitude } = position.coords;
+            fetchWeatherByCoords(latitude, longitude);
+        },
+        () => {
+            fetchWeatherData('London');
+        }
+    );
+}
+
+async function fetchWeatherByCoords(lat, lon) {
+    showLoading();
+    hideError();
+    hideWeather();
+
+    try {
+        const [currentResponse, forecastResponse] = await Promise.all([
+            fetch(`${API_BASE}/weather?lat=${lat}&lon=${lon}&units=metric`),
+            fetch(`${API_BASE}/forecast?lat=${lat}&lon=${lon}&units=metric`)
+        ]);
+
+        if (!currentResponse.ok || !forecastResponse.ok) {
+            throw new Error('Unable to fetch location weather');
+        }
+
+        const currentData = await currentResponse.json();
+        const forecastData = await forecastResponse.json();
+
+        updateUI(currentData);
+        updateForecastUI(forecastData);
+        showWeather();
+    } catch (error) {
+        fetchWeatherData('London');
+    } finally {
+        hideLoading();
+    }
+}
 async function fetchWeatherData(city) {
     showLoading();
     hideError();
