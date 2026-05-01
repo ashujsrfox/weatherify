@@ -25,6 +25,7 @@ body {
     position: relative;
     overflow: hidden;
     color: #2c3e50;
+    transition: color 0.4s ease;
 }
 
 body::before,
@@ -116,6 +117,7 @@ body.theme-haze {
     max-height: calc(100vh - 40px);
     overflow-y: auto;
     animation: slideUp 0.6s ease-out;
+    transition: background 0.4s ease, box-shadow 0.4s ease;
 }
 
 /* ===== HEADER SECTION ===== */
@@ -127,6 +129,9 @@ header {
     justify-content: space-between;
     align-items: center;
     gap: 20px;
+}
+header h1 {
+    flex: 1;
 }
 
 h1 {
@@ -209,6 +214,7 @@ h1 {
     overflow-y: auto;
     z-index: 1000;
     animation: slideDown 0.3s ease-out;
+    transition: background 0.4s ease;
 }
 
 .suggestion-item {
@@ -242,7 +248,7 @@ h1 {
 #weather-container {
     display: grid;
     grid-template-columns: 1fr 1fr;
-    gap: 10px; /* Reduced from 30px */
+    gap: 10px;
     align-items: stretch;
     animation: fadeIn 0.8s ease-out 0.2s both;
 }
@@ -269,12 +275,14 @@ h1 {
     color: #2d3748;
     margin-bottom: 3px;
     letter-spacing: -0.5px;
+    transition: color 0.4s ease;
 }
 
 #date {
     font-size: 13px;
     color: #718096;
     font-weight: 500;
+    transition: color 0.4s ease;
 }
 
 
@@ -291,6 +299,7 @@ h1 {
     border: 1px solid rgba(226, 232, 240, 0.5);
     order: 1;
     position: relative;
+    transition: background 0.4s ease, border-color 0.4s ease;
 }
 
 .weather-icon {
@@ -318,6 +327,7 @@ h1 {
     line-height: 1;
     color: #2d3748;
     letter-spacing: -2px;
+    transition: color 0.4s ease;
 }
 
 .unit {
@@ -325,6 +335,7 @@ h1 {
     font-weight: 400;
     color: #718096;
     margin-top: 8px;
+    transition: color 0.4s ease;
 }
 
 #weather-desc {
@@ -332,6 +343,7 @@ h1 {
     color: #718096;
     text-transform: capitalize;
     font-weight: 500;
+    transition: color 0.4s ease;
 }
 
 .sun-panel {
@@ -437,7 +449,7 @@ h1 {
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: 12px;
-    margin-bottom: 8px; /* Reduced from 25px */
+    margin-bottom: 8px;
     animation: slideInLeft 0.6s ease-out 0.3s both;
 }
 
@@ -498,12 +510,14 @@ h1 {
     text-transform: uppercase;
     letter-spacing: 0.8px;
     font-weight: 600;
+    transition: color 0.4s ease;
 }
 
 .detail-value {
     font-size: 16px;
     font-weight: 700;
     color: #2d3748;
+    transition: color 0.4s ease;
 }
 
 /* ===== LEFT COLUMN - FORECAST SECTION ===== */
@@ -519,12 +533,14 @@ h1 {
     font-weight: 700;
     color: #2d3748;
     letter-spacing: -0.5px;
+    transition: color 0.4s ease;
 }
 
 .forecast-subtitle {
     font-size: 13px;
     line-height: 1.6;
     color: #718096;
+    transition: color 0.4s ease;
 }
 
 .forecast-graph-card {
@@ -674,128 +690,273 @@ h1 {
     font-weight: 700;
     color: #2d3748;
     margin-bottom: 4px;
+    transition: color 0.4s ease;
 }
 
 .forecast-desc {
     font-size: 12px;
     color: #718096;
     text-transform: capitalize;
+    transition: color 0.4s ease;
+}
+
+/* ===== WEATHER TRENDS SECTION ===== */
+.weather-trends-section {
+    grid-column: 1 / -1;
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+    animation: slideUp 0.6s ease-out 0.25s both;
+}
+
+.trends-header {
+    display: flex;
+    justify-content: space-between;
+    gap: 20px;
+    align-items: flex-start;
+}
+
+.trend-controls {
+    display: inline-flex;
+    gap: 6px;
+    padding: 5px;
+    background: #edf2f7;
+    border: 1px solid rgba(226, 232, 240, 0.9);
+    border-radius: 14px;
+    flex-shrink: 0;
+}
+
+.trend-toggle {
+    border: none;
+    border-radius: 10px;
+    padding: 9px 14px;
+    background: transparent;
+    color: #718096;
+    cursor: pointer;
+    font: inherit;
+    font-size: 13px;
+    font-weight: 700;
+    transition: all 0.2s ease;
+}
+
+.trend-toggle:hover {
+    color: #4c51bf;
+    background: rgba(255, 255, 255, 0.72);
+}
+
+.trend-toggle.active {
+    color: white;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    box-shadow: 0 6px 18px rgba(102, 126, 234, 0.25);
+}
+
+.trends-layout {
+    display: grid;
+    grid-template-columns: minmax(0, 1.5fr) minmax(260px, 0.8fr);
+    gap: 16px;
+    align-items: stretch;
+}
+
+.trend-chart-card {
+    background: linear-gradient(180deg, #f8fbff 0%, #eef4ff 100%);
+    border: 2px solid rgba(102, 126, 234, 0.15);
+    border-radius: 18px;
+    padding: 20px;
+    transition: all 0.3s ease;
+}
+
+.trend-chart-card:hover {
+    border-color: #667eea;
+    box-shadow: 0 15px 40px rgba(102, 126, 234, 0.1);
+}
+
+.trend-chart-wrapper {
+    height: 280px;
+    width: 100%;
+}
+
+#trend-chart {
+    --trend-color: #667eea;
+    width: 100%;
+    height: 100%;
+    overflow: visible;
+}
+
+.trend-bar {
+    fill: rgba(102, 126, 234, 0.18);
+    fill: color-mix(in srgb, var(--trend-color) 22%, white);
+    stroke: rgba(102, 126, 234, 0.45);
+    stroke: color-mix(in srgb, var(--trend-color) 60%, white);
+    stroke-width: 1;
+    transition: all 0.25s ease;
+}
+
+.trend-bar-group:hover .trend-bar {
+    fill: rgba(102, 126, 234, 0.28);
+    fill: color-mix(in srgb, var(--trend-color) 34%, white);
+}
+
+.trend-range-line {
+    stroke: rgba(45, 55, 72, 0.22);
+    stroke-width: 3;
+    stroke-linecap: round;
+}
+
+.trend-high-dot {
+    fill: #f97316;
+    stroke: white;
+    stroke-width: 2;
+    opacity: 0.9;
+}
+
+.trend-low-dot {
+    fill: #0ea5e9;
+    stroke: white;
+    stroke-width: 2;
+    opacity: 0.9;
+}
+
+.trend-line {
+    fill: none;
+    stroke: var(--trend-color);
+    stroke-width: 4;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    animation: drawLine 1s ease-out forwards;
+    stroke-dasharray: 1000;
+    stroke-dashoffset: 1000;
+}
+
+.trend-line-point {
+    fill: white;
+    stroke: var(--trend-color);
+    stroke-width: 3;
+    animation: popIn 0.45s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+.trend-value-label {
+    paint-order: stroke;
+    stroke: #f8fbff;
+    stroke-width: 5px;
+    stroke-linejoin: round;
+}
+
+.trend-stats {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 10px;
+}
+
+.trend-stat-card {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 14px;
+    padding: 14px 16px;
+    border-radius: 14px;
+    background: linear-gradient(135deg, #f7fafc 0%, #edf2f7 100%);
+    border: 1px solid rgba(226, 232, 240, 0.72);
+    transition: all 0.25s ease;
+}
+
+.trend-stat-card:hover {
+    transform: translateY(-3px);
+    border-color: #667eea;
+    box-shadow: 0 10px 28px rgba(0, 0, 0, 0.08);
+}
+
+.trend-stat-date {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    min-width: 58px;
+}
+
+.trend-stat-date span {
+    color: #667eea;
+    font-size: 13px;
+    font-weight: 800;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+}
+
+.trend-stat-date small {
+    color: #718096;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.trend-stat-values {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: 8px 12px;
+    font-size: 12px;
+    color: #718096;
+}
+
+.trend-stat-values strong {
+    color: #2d3748;
 }
 
 /* ===== ANIMATIONS ===== */
 @keyframes slideUp {
-    from {
-        opacity: 0;
-        transform: translateY(30px);
-    }
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
+    from { opacity: 0; transform: translateY(30px); }
+    to   { opacity: 1; transform: translateY(0); }
 }
 
 @keyframes fadeIn {
-    from {
-        opacity: 0;
-    }
-    to {
-        opacity: 1;
-    }
+    from { opacity: 0; }
+    to   { opacity: 1; }
 }
 
 @keyframes slideInLeft {
-    from {
-        opacity: 0;
-        transform: translateX(-30px);
-    }
-    to {
-        opacity: 1;
-        transform: translateX(0);
-    }
+    from { opacity: 0; transform: translateX(-30px); }
+    to   { opacity: 1; transform: translateX(0); }
 }
 
 @keyframes slideInRight {
-    from {
-        opacity: 0;
-        transform: translateX(30px);
-    }
-    to {
-        opacity: 1;
-        transform: translateX(0);
-    }
+    from { opacity: 0; transform: translateX(30px); }
+    to   { opacity: 1; transform: translateX(0); }
 }
 
 @keyframes slideDown {
-    from {
-        opacity: 0;
-        transform: translateY(-10px);
-    }
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
+    from { opacity: 0; transform: translateY(-10px); }
+    to   { opacity: 1; transform: translateY(0); }
 }
 
 @keyframes bounce {
-    0%, 100% {
-        transform: translateY(0);
-    }
-    50% {
-        transform: translateY(-10px);
-    }
+    0%, 100% { transform: translateY(0); }
+    50%       { transform: translateY(-10px); }
 }
 
 @keyframes float {
-    0%, 100% {
-        transform: translate(-50%, -50%) translateY(0);
-    }
-    50% {
-        transform: translate(-50%, -50%) translateY(-8px);
-    }
+    0%, 100% { transform: translate(-50%, -50%) translateY(0); }
+    50%       { transform: translate(-50%, -50%) translateY(-8px); }
 }
 
 @keyframes popIn {
-    0% {
-        opacity: 0;
-        transform: scale(0);
-    }
-    100% {
-        opacity: 1;
-        transform: scale(1);
-    }
+    0%   { opacity: 0; transform: scale(0); }
+    100% { opacity: 1; transform: scale(1); }
 }
 
 @keyframes drawLine {
-    to {
-        stroke-dashoffset: 0;
-    }
+    to { stroke-dashoffset: 0; }
 }
 
 @keyframes fillArea {
-    to {
-        opacity: 1;
-    }
+    to { opacity: 1; }
 }
 
 @keyframes skyShift {
-    0% {
-        background-position: 0% 35%;
-    }
-    100% {
-        background-position: 100% 65%;
-    }
+    0%   { background-position: 0% 35%; }
+    100% { background-position: 100% 65%; }
 }
 
 @keyframes floatGlow {
-    0% {
-        transform: translate3d(0, 0, 0) scale(1);
-    }
-    50% {
-        transform: translate3d(18px, -14px, 0) scale(1.06);
-    }
-    100% {
-        transform: translate3d(-10px, 12px, 0) scale(0.96);
-    }
+    0%   { transform: translate3d(0, 0, 0) scale(1); }
+    50%  { transform: translate3d(18px, -14px, 0) scale(1.06); }
+    100% { transform: translate3d(-10px, 12px, 0) scale(0.96); }
 }
 
 /* Loading State */
@@ -815,9 +976,7 @@ h1 {
 }
 
 @keyframes spin {
-    to {
-        transform: rotate(360deg);
-    }
+    to { transform: rotate(360deg); }
 }
 
 .loading p {
@@ -862,6 +1021,14 @@ h1 {
     .forecast-container {
         grid-template-columns: repeat(5, 1fr);
     }
+
+    .trends-layout {
+        grid-template-columns: 1fr;
+    }
+
+    .trend-stats {
+        grid-template-columns: repeat(2, 1fr);
+    }
 }
 
 @media screen and (max-width: 768px) {
@@ -905,6 +1072,19 @@ h1 {
 
     .graph-wrapper {
         height: 180px;
+    }
+
+    .trends-header {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .trend-controls {
+        align-self: flex-start;
+    }
+
+    .trend-chart-wrapper {
+        height: 220px;
     }
 }
 
@@ -995,6 +1175,23 @@ h1 {
         height: 150px;
     }
 
+    .trend-stats {
+        grid-template-columns: 1fr;
+    }
+
+    .trend-stat-card {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+
+    .trend-stat-values {
+        justify-content: flex-start;
+    }
+
+    .trend-chart-wrapper {
+        height: 190px;
+    }
+
     .sun-position-card {
         padding: 15px;
     }
@@ -1047,6 +1244,16 @@ h1 {
         font-size: 18px;
     }
 
+    .trend-controls {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        width: 100%;
+    }
+
+    .trend-toggle {
+        padding: 9px 8px;
+    }
+
     .detail-card {
         flex-direction: row;
         align-items: center;
@@ -1068,4 +1275,232 @@ h1 {
     font-weight: 700;
     color: white;
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}
+
+
+/* ============================================================
+   ✅ ADDED: Dark Mode — Issue #14
+   ============================================================ */
+
+/* -- Toggle Button -- */
+.theme-toggle {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 16px;
+    border: 1.5px solid rgba(102, 126, 234, 0.3);
+    border-radius: 50px;
+    background: rgba(102, 126, 234, 0.08);
+    color: #2d3748;
+    font-family: inherit;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    white-space: nowrap;
+    flex-shrink: 0;
+    transition: background 0.3s ease, border-color 0.3s ease,
+                color 0.3s ease, transform 0.15s ease, box-shadow 0.3s ease;
+    user-select: none;
+}
+
+.theme-toggle:hover {
+    background: rgba(102, 126, 234, 0.15);
+    border-color: #667eea;
+    transform: translateY(-1px);
+}
+
+.theme-toggle:active {
+    transform: translateY(0);
+}
+
+.toggle-icon {
+    font-style: normal;
+    font-size: 16px;
+    transition: transform 0.4s ease;
+    line-height: 1;
+}
+
+body.dark-mode .toggle-icon {
+    transform: rotate(20deg);
+}
+
+body.dark-mode .theme-toggle {
+    background: rgba(251, 191, 36, 0.08);
+    border-color: rgba(251, 191, 36, 0.3);
+    color: #fbbf24;
+}
+
+body.dark-mode .theme-toggle:hover {
+    background: rgba(251, 191, 36, 0.15);
+    border-color: #fbbf24;
+}
+
+/* Responsive: icon-only on small screens */
+@media screen and (max-width: 600px) {
+    .toggle-label {
+        display: none;
+    }
+
+    .theme-toggle {
+        padding: 8px 10px;
+    }
+}
+
+/* -- Dark theme overrides -- */
+body.dark-mode {
+    color: #e2e8f0;
+}
+
+body.dark-mode .weather-app {
+    background: rgba(15, 23, 42, 0.92);
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(255, 255, 255, 0.06);
+}
+
+body.dark-mode #city-input {
+    background: rgba(30, 41, 59, 0.8);
+    border-color: rgba(100, 116, 139, 0.4);
+    color: #e2e8f0;
+}
+
+body.dark-mode #city-input::placeholder {
+    color: #64748b;
+}
+
+body.dark-mode #city-input:focus {
+    background: rgba(30, 41, 59, 1);
+    border-color: #667eea;
+}
+
+body.dark-mode .suggestions-container {
+    background: #1e293b;
+    box-shadow: 0 15px 50px rgba(0, 0, 0, 0.5);
+}
+
+body.dark-mode .suggestion-item {
+    color: #cbd5e0;
+    border-bottom-color: rgba(100, 116, 139, 0.2);
+}
+
+body.dark-mode .suggestion-item:hover {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+}
+
+body.dark-mode .temperature-section {
+    background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+    border-color: rgba(100, 116, 139, 0.2);
+}
+
+body.dark-mode #city-name,
+body.dark-mode #temp,
+body.dark-mode .forecast-title {
+    color: #f1f5f9;
+}
+
+body.dark-mode #date,
+body.dark-mode #weather-desc,
+body.dark-mode .unit,
+body.dark-mode .forecast-subtitle,
+body.dark-mode .detail-label {
+    color: #94a3b8;
+}
+
+body.dark-mode .detail-card {
+    background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+    border-color: rgba(100, 116, 139, 0.2);
+}
+
+body.dark-mode .detail-card:hover {
+    border-color: #667eea;
+    box-shadow: 0 12px 35px rgba(0, 0, 0, 0.4);
+}
+
+body.dark-mode .detail-value {
+    color: #f1f5f9;
+}
+
+body.dark-mode .forecast-graph-card {
+    background: linear-gradient(180deg, #1e293b 0%, #0f172a 100%);
+    border-color: rgba(102, 126, 234, 0.2);
+}
+
+body.dark-mode .forecast-card {
+    background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+    border-color: rgba(100, 116, 139, 0.2);
+}
+
+body.dark-mode .forecast-card:hover {
+    border-color: #667eea;
+    box-shadow: 0 12px 35px rgba(0, 0, 0, 0.4);
+}
+
+body.dark-mode .forecast-temp {
+    color: #f1f5f9;
+}
+
+body.dark-mode .forecast-desc {
+    color: #94a3b8;
+}
+
+body.dark-mode .graph-point-label {
+    fill: #f1f5f9;
+}
+
+body.dark-mode .graph-axis-label {
+    fill: #94a3b8;
+}
+
+body.dark-mode .graph-point {
+    fill: #1e293b;
+}
+
+body.dark-mode .sun-position-card {
+    background: linear-gradient(135deg, #2a1f0a 0%, #1f1506 100%);
+    border-color: rgba(217, 119, 6, 0.3);
+}
+
+body.dark-mode .sun-position-header h3 {
+    color: #fbbf24;
+}
+
+body.dark-mode #sun-phase {
+    color: #fbbf24;
+    background: rgba(251, 191, 36, 0.1);
+}
+
+body.dark-mode .sun-position-meta {
+    color: #d97706;
+}
+
+body.dark-mode .theme-toggle {
+    background: rgba(15, 23, 42, 0.7);
+    border-color: rgba(100, 116, 139, 0.4);
+    color: #fbbf24;
+}
+
+body.dark-mode .theme-toggle:hover {
+    background: rgba(30, 41, 59, 0.9);
+}
+
+body.dark-mode .spinner {
+    border-color: rgba(100, 116, 139, 0.3);
+    border-top-color: #667eea;
+}
+
+body.dark-mode .loading p {
+    color: #94a3b8;
+}
+
+/* Responsive: shrink toggle on small screens */
+@media screen and (max-width: 600px) {
+    .theme-toggle {
+        top: 0.65rem;
+        right: 0.65rem;
+        padding: 6px 12px;
+        font-size: 13px;
+    }
+
+    .toggle-label {
+        display: none; /* icon-only on mobile */
+    }
 }

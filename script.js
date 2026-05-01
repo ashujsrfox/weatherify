@@ -44,7 +44,15 @@ const forecastContainer = document.getElementById('forecast-container');
 const forecastGraph = document.getElementById('forecast-graph');
 const forecastSummary = document.getElementById('forecast-summary');
 const graphRange = document.getElementById('graph-range');
+const trendsSummary = document.getElementById('trends-summary');
+const trendChart = document.getElementById('trend-chart');
+const trendStats = document.getElementById('trend-stats');
+const trendChartLabel = document.getElementById('trend-chart-label');
+const trendChartRange = document.getElementById('trend-chart-range');
+const trendControls = document.querySelector('.trend-controls');
 let sunTimeline = null;
+let dailyTrendData = [];
+let selectedTrendMetric = 'avg';
 
 // Event Listeners
 searchBtn.addEventListener('click', handleSearch);
@@ -75,6 +83,17 @@ document.addEventListener('click', (e) => {
         hideSuggestions();
     }
 });
+
+if (trendControls) {
+    trendControls.addEventListener('click', (event) => {
+        const button = event.target.closest('[data-trend-metric]');
+        if (!button) return;
+
+        selectedTrendMetric = button.dataset.trendMetric;
+        updateTrendToggleState();
+        renderTrendChart(dailyTrendData);
+    });
+}
 
 async function fetchCitySuggestions(query) {
     try {
@@ -121,7 +140,7 @@ function hideSuggestions() {
 
 // Initialize with default city
 window.addEventListener('DOMContentLoaded', () => {
-    fetchWeatherData('London');
+    detectUserLocation();
 });
 
 function handleSearch() {
@@ -130,7 +149,50 @@ function handleSearch() {
         fetchWeatherData(city);
     }
 }
+function detectUserLocation() {
+    if (!navigator.geolocation) {
+        fetchWeatherData('London');
+        return;
+    }
 
+    navigator.geolocation.getCurrentPosition(
+        (position) => {
+            const { latitude, longitude } = position.coords;
+            fetchWeatherByCoords(latitude, longitude);
+        },
+        () => {
+            fetchWeatherData('London');
+        }
+    );
+}
+
+async function fetchWeatherByCoords(lat, lon) {
+    showLoading();
+    hideError();
+    hideWeather();
+
+    try {
+        const [currentResponse, forecastResponse] = await Promise.all([
+            fetch(`${API_BASE}/weather?lat=${lat}&lon=${lon}&units=metric`),
+            fetch(`${API_BASE}/forecast?lat=${lat}&lon=${lon}&units=metric`)
+        ]);
+
+        if (!currentResponse.ok || !forecastResponse.ok) {
+            throw new Error('Unable to fetch location weather');
+        }
+
+        const currentData = await currentResponse.json();
+        const forecastData = await forecastResponse.json();
+
+        updateUI(currentData);
+        updateForecastUI(forecastData);
+        showWeather();
+    } catch (error) {
+        fetchWeatherData('London');
+    } finally {
+        hideLoading();
+    }
+}
 async function fetchWeatherData(city) {
     showLoading();
     hideError();
@@ -195,6 +257,7 @@ function updateForecastUI(forecastData) {
     }
 
     const chartData = forecastData.list.slice(0, 8);
+    dailyTrendData = buildDailyTrendData(forecastData.list, forecastData.city?.timezone || 0);
     const dailyData = [];
     const seenDates = new Set();
 
@@ -236,6 +299,7 @@ function updateForecastUI(forecastData) {
 
     updateForecastSummary(chartData);
     renderForecastGraph(chartData);
+    updateWeatherTrends(dailyTrendData);
 }
 
 function updateForecastSummary(chartData) {
@@ -260,6 +324,187 @@ function updateForecastSummary(chartData) {
 
     forecastSummary.textContent = `${trend} over the next 24 hours, ranging from ${Math.round(minTemp)}${DEGREE}C to ${Math.round(maxTemp)}${DEGREE}C.`;
     graphRange.textContent = `${Math.round(minTemp)}${DEGREE}C - ${Math.round(maxTemp)}${DEGREE}C`;
+}
+
+function buildDailyTrendData(forecastList, timezoneOffsetSeconds) {
+    const groupedDays = new Map();
+
+    forecastList.forEach((item) => {
+        const localDate = getShiftedDate(item.dt, timezoneOffsetSeconds);
+        const dateKey = localDate.toISOString().slice(0, 10);
+
+        if (!groupedDays.has(dateKey)) {
+            groupedDays.set(dateKey, {
+                dateKey,
+                dayLabel: localDate.toLocaleDateString('en-US', {
+                    weekday: 'short',
+                    timeZone: 'UTC'
+                }),
+                dateLabel: localDate.toLocaleDateString('en-US', {
+                    month: 'short',
+                    day: 'numeric',
+                    timeZone: 'UTC'
+                }),
+                temperatures: []
+            });
+        }
+
+        groupedDays.get(dateKey).temperatures.push(item.main.temp);
+    });
+
+    return Array.from(groupedDays.values()).slice(0, 5).map((day) => {
+        const high = Math.max(...day.temperatures);
+        const low = Math.min(...day.temperatures);
+        const avg = day.temperatures.reduce((total, temp) => total + temp, 0) / day.temperatures.length;
+
+        return {
+            ...day,
+            high,
+            low,
+            avg
+        };
+    });
+}
+
+function updateWeatherTrends(trendData) {
+    if (!trendsSummary || !trendStats || !trendChart) return;
+
+    if (!trendData.length) {
+        trendsSummary.textContent = 'Daily trend data is unavailable right now.';
+        trendStats.innerHTML = '';
+        trendChart.innerHTML = '';
+        trendChartRange.textContent = '--';
+        return;
+    }
+
+    const firstAverage = trendData[0].avg;
+    const lastAverage = trendData[trendData.length - 1].avg;
+    const averageDelta = lastAverage - firstAverage;
+    const trendText =
+        averageDelta > 1.5 ? 'Temperatures rising over the next few days.' :
+        averageDelta < -1.5 ? 'Cooling trend expected over the next few days.' :
+        'Weather remaining stable over the next few days.';
+    const warmestDay = trendData.reduce((warmest, day) => day.high > warmest.high ? day : warmest, trendData[0]);
+    const coolestDay = trendData.reduce((coolest, day) => day.low < coolest.low ? day : coolest, trendData[0]);
+
+    trendsSummary.textContent = `${trendText} Warmest: ${warmestDay.dayLabel} at ${Math.round(warmestDay.high)}${DEGREE}C. Coolest: ${coolestDay.dayLabel} at ${Math.round(coolestDay.low)}${DEGREE}C.`;
+    renderTrendStats(trendData);
+    renderTrendChart(trendData);
+}
+
+function renderTrendStats(trendData) {
+    if (!trendStats) return;
+
+    trendStats.innerHTML = trendData.map((day) => `
+        <div class="trend-stat-card">
+            <div class="trend-stat-date">
+                <span>${day.dayLabel}</span>
+                <small>${day.dateLabel}</small>
+            </div>
+            <div class="trend-stat-values">
+                <span><strong>${Math.round(day.high)}${DEGREE}C</strong> high</span>
+                <span><strong>${Math.round(day.low)}${DEGREE}C</strong> low</span>
+                <span><strong>${Math.round(day.avg)}${DEGREE}C</strong> avg</span>
+            </div>
+        </div>
+    `).join('');
+}
+
+function updateTrendToggleState() {
+    if (!trendControls) return;
+
+    trendControls.querySelectorAll('[data-trend-metric]').forEach((button) => {
+        button.classList.toggle('active', button.dataset.trendMetric === selectedTrendMetric);
+    });
+}
+
+function renderTrendChart(trendData) {
+    if (!trendChart) return;
+
+    if (!trendData.length) {
+        trendChart.innerHTML = '';
+        return;
+    }
+
+    const metricLabels = {
+        high: 'Daily High Temperature',
+        low: 'Daily Low Temperature',
+        avg: 'Daily Average Temperature'
+    };
+    const metricColors = {
+        high: '#f97316',
+        low: '#0ea5e9',
+        avg: '#667eea'
+    };
+    const metric = selectedTrendMetric in metricLabels ? selectedTrendMetric : 'avg';
+    const width = 760;
+    const height = 280;
+    const padding = { top: 46, right: 42, bottom: 48, left: 54 };
+    const innerWidth = width - padding.left - padding.right;
+    const innerHeight = height - padding.top - padding.bottom;
+    const values = trendData.map((day) => day[metric]);
+    const lowValues = trendData.map((day) => day.low);
+    const highValues = trendData.map((day) => day.high);
+    const minValue = Math.floor(Math.min(...lowValues) - 1);
+    const maxValue = Math.ceil(Math.max(...highValues) + 1);
+    const range = Math.max(maxValue - minValue, 1);
+    const barWidth = Math.min(58, innerWidth / trendData.length * 0.45);
+
+    const getY = (value) => padding.top + ((maxValue - value) / range) * innerHeight;
+    const points = trendData.map((day, index) => {
+        const x = padding.left + (index * innerWidth) / Math.max(trendData.length - 1, 1);
+        return {
+            ...day,
+            x,
+            y: getY(day[metric]),
+            value: day[metric]
+        };
+    });
+
+    const baselineY = height - padding.bottom;
+    const bars = points.map((point) => {
+        const barHeight = Math.max(baselineY - point.y, 3);
+        return `
+            <g class="trend-bar-group">
+                <rect x="${point.x - barWidth / 2}" y="${point.y}" width="${barWidth}" height="${barHeight}" rx="10" class="trend-bar"></rect>
+                <line x1="${point.x}" y1="${getY(point.low)}" x2="${point.x}" y2="${getY(point.high)}" class="trend-range-line"></line>
+                <circle cx="${point.x}" cy="${getY(point.high)}" r="4" class="trend-high-dot"></circle>
+                <circle cx="${point.x}" cy="${getY(point.low)}" r="4" class="trend-low-dot"></circle>
+            </g>
+        `;
+    }).join('');
+    const linePoints = points.map((point) => `${point.x},${point.y}`).join(' ');
+    const gridLines = [0, 0.5, 1].map((step) => {
+        const y = padding.top + innerHeight * step;
+        const value = Math.round(maxValue - range * step);
+        return `
+            <line x1="${padding.left}" y1="${y}" x2="${width - padding.right}" y2="${y}" class="graph-grid-line"></line>
+            <text x="${padding.left - 12}" y="${y + 4}" text-anchor="end" class="graph-axis-label">${value}${DEGREE}</text>
+        `;
+    }).join('');
+    const labels = points.map((point) => `
+        <g transform="translate(${point.x}, ${point.y})">
+            <circle r="5" class="trend-line-point"></circle>
+            <text y="-18" text-anchor="middle" class="graph-point-label trend-value-label">${Math.round(point.value)}${DEGREE}</text>
+            <text y="${height - padding.bottom - point.y + 28}" text-anchor="middle" class="graph-axis-label">${point.dayLabel}</text>
+        </g>
+    `).join('');
+
+    trendChart.style.setProperty('--trend-color', metricColors[metric]);
+    trendChart.innerHTML = `
+        ${gridLines}
+        ${bars}
+        <polyline points="${linePoints}" class="trend-line"></polyline>
+        ${labels}
+    `;
+
+    if (trendChartLabel) {
+        trendChartLabel.textContent = metricLabels[metric];
+    }
+
+    if (trendChartRange) {
+        trendChartRange.textContent = `${Math.round(Math.min(...values))}${DEGREE}C - ${Math.round(Math.max(...values))}${DEGREE}C`;
+    }
 }
 
 function updateSunPosition(data) {
@@ -502,3 +747,47 @@ function hideError() {
 }
 
 setInterval(renderSunPosition, 60000);
+
+
+// ============================================================
+// ✅ ADDED: Dark Mode Toggle — Issue #14
+// ============================================================
+(function initDarkMode() {
+    const STORAGE_KEY = 'weatherify-theme';
+    const DARK_CLASS  = 'dark-mode';
+
+    const toggleBtn = document.getElementById('theme-toggle');
+    const icon      = toggleBtn ? toggleBtn.querySelector('.toggle-icon') : null;
+    const label     = toggleBtn ? toggleBtn.querySelector('.toggle-label') : null;
+
+    function applyTheme(isDark) {
+        document.body.classList.toggle(DARK_CLASS, isDark);
+        if (icon)      icon.textContent  = isDark ? '☀️' : '🌙';
+        if (label)     label.textContent = isDark ? 'Light' : 'Dark';
+        if (toggleBtn) toggleBtn.setAttribute('aria-pressed', String(isDark));
+    }
+
+    function getInitialPreference() {
+        const saved = localStorage.getItem(STORAGE_KEY);
+        if (saved !== null) return saved === 'dark';
+        return window.matchMedia('(prefers-color-scheme: dark)').matches;
+    }
+
+    // Apply before first paint to prevent flash
+    applyTheme(getInitialPreference());
+
+    if (toggleBtn) {
+        toggleBtn.addEventListener('click', () => {
+            const isDark = !document.body.classList.contains(DARK_CLASS);
+            applyTheme(isDark);
+            localStorage.setItem(STORAGE_KEY, isDark ? 'dark' : 'light');
+        });
+    }
+
+    // Follow OS preference changes only if user hasn't manually chosen
+    window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', (e) => {
+        if (localStorage.getItem(STORAGE_KEY) === null) {
+            applyTheme(e.matches);
+        }
+    });
+})();

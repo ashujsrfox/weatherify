@@ -10,10 +10,16 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 </head>
 <body>
+
+    
     <div class="container">
         <div class="weather-app">
             <header>
-                <h1>Weatherify</h1>
+                <h1>Weatherify ⛅</h1>
+                <button id="theme-toggle" class="theme-toggle" aria-label="Toggle dark mode" aria-pressed="false">
+                    <span class="toggle-icon" aria-hidden="true">🌙</span>
+                    <span class="toggle-label">Dark</span>
+                </button>
                 <div class="search-box">
                     <input type="text" id="city-input" placeholder="Enter city name..." autocomplete="off">
                     <button id="search-btn">
@@ -153,6 +159,38 @@
                     </div>
                     </div>
                 </div>
+
+                <section class="weather-trends-section" aria-labelledby="weather-trends-title">
+                    <div class="trends-header">
+                        <div>
+                            <h3 class="forecast-title" id="weather-trends-title">Weather Trends</h3>
+                            <p class="forecast-subtitle" id="trends-summary">Daily temperature insights will appear here.</p>
+                        </div>
+                        <div class="trend-controls" aria-label="Choose trend metric">
+                            <button class="trend-toggle active" type="button" data-trend-metric="avg">Avg</button>
+                            <button class="trend-toggle" type="button" data-trend-metric="high">High</button>
+                            <button class="trend-toggle" type="button" data-trend-metric="low">Low</button>
+                        </div>
+                    </div>
+
+                    <div class="trends-layout">
+                        <div class="trend-chart-card">
+                            <div class="graph-header">
+                                <span id="trend-chart-label">Average Temperature</span>
+                                <span id="trend-chart-range">--</span>
+                            </div>
+                            <div class="trend-chart-wrapper">
+                                <svg id="trend-chart" viewBox="0 0 760 280" preserveAspectRatio="none" aria-label="Daily temperature trend chart">
+                                    <!-- Trend chart is rendered by JavaScript -->
+                                </svg>
+                            </div>
+                        </div>
+
+                        <div class="trend-stats" id="trend-stats">
+                            <!-- Daily trend stats will be inserted here -->
+                        </div>
+                    </div>
+                </section>
             </main>
 
             <div id="loading" class="loading hidden">

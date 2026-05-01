@@ -1,4 +1,4 @@
-# Weather App
+# Weatherify
 
 A modern, responsive weather application built with vanilla HTML, CSS, and JavaScript that displays current weather conditions and a 5-day forecast for any city worldwide.
 
@@ -15,10 +15,12 @@ REQUEST- The project requires refinement and there are several features that can
 
 ## Live Demo
 
-[View the live demo here](https://ashujsrfox.github.io/weatherify/)
+[View the live demo here](https://ashujsrfox.github.io/weatherify/)//Currently not working)
 
 **Note:** GitHub Pages serves static files only. The app expects a small local (or hosted) Node server that proxies OpenWeatherMap so the API key stays on the server. For the public Pages demo to keep working, maintainers need either a deployed proxy (for example Cloudflare Worker, Vercel serverless, or this `server.js` on a host) or a separate demo URL that runs behind that proxy.
 
+
+It is requested that users go for local development in order to access the app
 ## Local development
 
 1. Install [Node.js](https://nodejs.org/) 18 or newer.
