@@ -3,6 +3,23 @@ const API_BASE = '/api';
 const ICON_URL = 'https://openweathermap.org/img/wn';
 const DEGREE = '\u00B0';
 
+// Unit system
+let currentUnit = localStorage.getItem('weatherUnit') || 'C';
+let rawCurrentData = null;
+let rawForecastData = null;
+
+function convertTemp(celsius, unit) {
+    if (unit === 'F') return (celsius * 9 / 5) + 32;
+    if (unit === 'K') return celsius + 273.15;
+    return celsius;
+}
+
+function formatTemp(celsius, unit) {
+    const val = convertTemp(celsius, unit);
+    const symbol = unit === 'K' ? 'K' : `${DEGREE}${unit}`;
+    return `${Math.round(val)}${symbol}`;
+}
+
 async function parseJsonSafe(response) {
     try {
         return await response.json();
@@ -74,6 +91,20 @@ document.addEventListener('click', (e) => {
     if (!e.target.closest('.search-box')) {
         hideSuggestions();
     }
+});
+
+// Unit toggle             
+document.querySelectorAll('.unit-btn').forEach(btn => {
+    if (btn.dataset.unit === currentUnit) btn.classList.add('active');
+    else btn.classList.remove('active');
+
+    btn.addEventListener('click', () => {
+        currentUnit = btn.dataset.unit;
+        localStorage.setItem('weatherUnit', currentUnit);
+        document.querySelectorAll('.unit-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        refreshUI();
+    });
 });
 
 async function fetchCitySuggestions(query) {
@@ -169,13 +200,14 @@ function updateUI(data) {
     cityName.textContent = `${data.name}, ${data.sys.country}`;
     dateElement.textContent = formatDateAtOffset(Math.floor(Date.now() / 1000), data.timezone);
 
-    tempElement.textContent = Math.round(data.main.temp);
+    tempElement.textContent = Math.round(convertTemp(data.main.temp, currentUnit));
+    document.querySelector('.unit').textContent = currentUnit === 'K' ? 'K' : `${DEGREE}${currentUnit}`;
     weatherDesc.textContent = data.weather[0].description;
 
     const iconCode = data.weather[0].icon;
     weatherIcon.innerHTML = `<img src="${ICON_URL}/${iconCode}@4x.png" alt="${data.weather[0].description}">`;
 
-    feelsLike.textContent = `${Math.round(data.main.feels_like)}${DEGREE}C`;
+    feelsLike.textContent = formatTemp(data.main.feels_like, currentUnit);
     humidity.textContent = `${data.main.humidity}%`;
     windSpeed.textContent = `${Math.round(data.wind.speed * 3.6)} km/h`;
     pressure.textContent = `${data.main.pressure} hPa`;
@@ -186,6 +218,7 @@ function updateUI(data) {
 
     updateSunPosition(data);
     updateDynamicBackground(data);
+    rawCurrentData = data;
 }
 
 function updateForecastUI(forecastData) {
@@ -193,7 +226,7 @@ function updateForecastUI(forecastData) {
         console.warn('Forecast container not found');
         return;
     }
-
+     rawForecastData = forecastData;
     const chartData = forecastData.list.slice(0, 8);
     const dailyData = [];
     const seenDates = new Set();
@@ -217,7 +250,7 @@ function updateForecastUI(forecastData) {
         const date = new Date(day.dt * 1000);
         const dayName = date.toLocaleDateString('en-US', { weekday: 'short' });
         const iconCode = day.weather[0].icon;
-        const temp = Math.round(day.main.temp);
+        const temp = Math.round(convertTemp(day.main.temp, currentUnit));
         const description = day.weather[0].description;
 
         const card = document.createElement('div');
@@ -227,7 +260,7 @@ function updateForecastUI(forecastData) {
             <div class="forecast-icon">
                 <img src="${ICON_URL}/${iconCode}@2x.png" alt="${description}">
             </div>
-            <div class="forecast-temp">${temp}${DEGREE}C</div>
+            <div class="forecast-temp">${temp}${currentUnit === 'K' ? 'K' : `${DEGREE}${currentUnit}`}</div>
             <div class="forecast-desc">${description}</div>
         `;
 
@@ -258,8 +291,8 @@ function updateForecastSummary(chartData) {
         delta < -1.5 ? 'Temperatures are expected to cool down' :
         'Temperatures are expected to stay fairly steady';
 
-    forecastSummary.textContent = `${trend} over the next 24 hours, ranging from ${Math.round(minTemp)}${DEGREE}C to ${Math.round(maxTemp)}${DEGREE}C.`;
-    graphRange.textContent = `${Math.round(minTemp)}${DEGREE}C - ${Math.round(maxTemp)}${DEGREE}C`;
+    forecastSummary.textContent = `${trend} over the next 24 hours, ranging from ${formatTemp(minTemp, currentUnit)} to ${formatTemp(maxTemp, currentUnit)}.`;
+    graphRange.textContent = `${formatTemp(minTemp, currentUnit)} - ${formatTemp(maxTemp, currentUnit)}`;
 }
 
 function updateSunPosition(data) {
@@ -439,7 +472,7 @@ function renderForecastGraph(chartData) {
         return {
             x,
             y,
-            temp: Math.round(item.main.temp),
+            temp: Math.round(convertTemp(item.main.temp, currentUnit)),
             label: new Date(item.dt * 1000).toLocaleTimeString('en-US', {
                 hour: 'numeric'
             })
@@ -461,7 +494,7 @@ function renderForecastGraph(chartData) {
     const labels = points.map((point) => `
         <g transform="translate(${point.x}, ${point.y})">
             <circle r="5" class="graph-point"></circle>
-            <text y="-14" text-anchor="middle" class="graph-point-label">${point.temp}${DEGREE}</text>
+            <text y="-14" text-anchor="middle" class="graph-point-label">${point.temp}${currentUnit === 'K' ? 'K' : `${DEGREE}${currentUnit}`}</text>
             <text y="${height - padding.bottom - point.y + 24}" text-anchor="middle" class="graph-axis-label">${point.label}</text>
         </g>
     `).join('');
@@ -499,6 +532,11 @@ function showError(message) {
 
 function hideError() {
     errorMessage.classList.add('hidden');
+}
+
+function refreshUI() {
+    if(rawCurrentData) updateUI(rawCurrentData);
+    if(rawForecastData) updateForecastUI(rawForecastData);
 }
 
 setInterval(renderSunPosition, 60000);
