@@ -1265,6 +1265,65 @@ h1 {
     }
 }
 
+/* Unit Toggle */
+.unit-toggle {
+    display: flex;
+    border: 1.5px solid rgba(102, 126, 234, 0.3);
+    border-radius: 50px;
+    overflow: hidden;
+    flex-shrink: 0;
+}
+
+.unit-btn {
+    padding: 8px 14px;
+    border: none;
+    background: transparent;
+    color: #718096;
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.2s ease, color 0.2s ease;
+}
+
+.unit-btn:not(:last-child) {
+    border-right: 1.5px solid rgba(102, 126, 234, 0.2);
+}
+
+.unit-btn.active {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+}
+
+.unit-btn:not(.active):hover {
+    background: rgba(102, 126, 234, 0.1);
+    color: #667eea;
+}
+
+body.dark-mode .unit-toggle {
+    border-color: rgba(100, 116, 139, 0.4);
+}
+
+body.dark-mode .unit-btn {
+    color: #94a3b8;
+}
+
+body.dark-mode .unit-btn:not(:last-child) {
+    border-right-color: rgba(100, 116, 139, 0.3);
+}
+
+body.dark-mode .unit-btn:not(.active):hover {
+    background: rgba(102, 126, 234, 0.15);
+    color: #a5b4fc;
+}
+
+@media screen and (max-width: 600px) {
+    .unit-btn {
+        padding: 8px 10px;
+        font-size: 12px;
+    }
+}
+
 #uv-index {
     display: inline-flex;
     align-items: center;

@@ -3,6 +3,27 @@ const API_BASE = '/api';
 const ICON_URL = 'https://openweathermap.org/img/wn';
 const DEGREE = '\u00B0';
 
+let currentUnit = 'C';
+let rawData = { current: null, forecast: null };
+
+function toUnit(kelvin) {
+    if (currentUnit === 'C') return `${Math.round(kelvin - 273.15)}${DEGREE}C`;
+    if (currentUnit === 'F') return `${Math.round((kelvin - 273.15) * 9 / 5 + 32)}${DEGREE}F`;
+    return `${Math.round(kelvin)}K`;
+}
+
+function toUnitNum(kelvin) {
+    if (currentUnit === 'C') return Math.round(kelvin - 273.15);
+    if (currentUnit === 'F') return Math.round((kelvin - 273.15) * 9 / 5 + 32);
+    return Math.round(kelvin);
+}
+
+function unitLabel() {
+    if (currentUnit === 'C') return `${DEGREE}C`;
+    if (currentUnit === 'F') return `${DEGREE}F`;
+    return 'K';
+}
+
 async function parseJsonSafe(response) {
     try {
         return await response.json();
@@ -53,6 +74,19 @@ const trendControls = document.querySelector('.trend-controls');
 let sunTimeline = null;
 let dailyTrendData = [];
 let selectedTrendMetric = 'avg';
+
+// Unit toggle
+document.querySelectorAll('.unit-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+        currentUnit = btn.dataset.unit;
+        document.querySelectorAll('.unit-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        if (rawData.current) {
+            updateUI(rawData.current);
+            updateForecastUI(rawData.forecast);
+        }
+    });
+});
 
 // Event Listeners
 searchBtn.addEventListener('click', handleSearch);
@@ -200,8 +234,8 @@ async function fetchWeatherData(city) {
 
     try {
         const [currentResponse, forecastResponse] = await Promise.all([
-            fetch(`${API_BASE}/weather?q=${encodeURIComponent(city)}&units=metric`),
-            fetch(`${API_BASE}/forecast?q=${encodeURIComponent(city)}&units=metric`)
+            fetch(`${API_BASE}/weather?q=${encodeURIComponent(city)}&units=standard`),
+            fetch(`${API_BASE}/forecast?q=${encodeURIComponent(city)}&units=standard`)
         ]);
 
         if (!currentResponse.ok) {
@@ -216,6 +250,8 @@ async function fetchWeatherData(city) {
         const currentData = await currentResponse.json();
         const forecastData = await forecastResponse.json();
 
+        rawData.current = currentData;
+        rawData.forecast = forecastData;
         updateUI(currentData);
         updateForecastUI(forecastData);
         showWeather();
@@ -231,13 +267,14 @@ function updateUI(data) {
     cityName.textContent = `${data.name}, ${data.sys.country}`;
     dateElement.textContent = formatDateAtOffset(Math.floor(Date.now() / 1000), data.timezone);
 
-    tempElement.textContent = Math.round(data.main.temp);
+    tempElement.textContent = toUnitNum(data.main.temp);
+    document.querySelector('.unit').textContent = unitLabel();
     weatherDesc.textContent = data.weather[0].description;
 
     const iconCode = data.weather[0].icon;
     weatherIcon.innerHTML = `<img src="${ICON_URL}/${iconCode}@4x.png" alt="${data.weather[0].description}">`;
 
-    feelsLike.textContent = `${Math.round(data.main.feels_like)}${DEGREE}C`;
+    feelsLike.textContent = toUnit(data.main.feels_like);
     humidity.textContent = `${data.main.humidity}%`;
     windSpeed.textContent = `${Math.round(data.wind.speed * 3.6)} km/h`;
     pressure.textContent = `${data.main.pressure} hPa`;
@@ -280,7 +317,6 @@ function updateForecastUI(forecastData) {
         const date = new Date(day.dt * 1000);
         const dayName = date.toLocaleDateString('en-US', { weekday: 'short' });
         const iconCode = day.weather[0].icon;
-        const temp = Math.round(day.main.temp);
         const description = day.weather[0].description;
 
         const card = document.createElement('div');
@@ -290,7 +326,7 @@ function updateForecastUI(forecastData) {
             <div class="forecast-icon">
                 <img src="${ICON_URL}/${iconCode}@2x.png" alt="${description}">
             </div>
-            <div class="forecast-temp">${temp}${DEGREE}C</div>
+            <div class="forecast-temp">${toUnit(day.main.temp)}</div>
             <div class="forecast-desc">${description}</div>
         `;
 
@@ -322,8 +358,8 @@ function updateForecastSummary(chartData) {
         delta < -1.5 ? 'Temperatures are expected to cool down' :
         'Temperatures are expected to stay fairly steady';
 
-    forecastSummary.textContent = `${trend} over the next 24 hours, ranging from ${Math.round(minTemp)}${DEGREE}C to ${Math.round(maxTemp)}${DEGREE}C.`;
-    graphRange.textContent = `${Math.round(minTemp)}${DEGREE}C - ${Math.round(maxTemp)}${DEGREE}C`;
+    forecastSummary.textContent = `${trend} over the next 24 hours, ranging from ${toUnit(minTemp)} to ${toUnit(maxTemp)}.`;
+    graphRange.textContent = `${toUnit(minTemp)} - ${toUnit(maxTemp)}`;
 }
 
 function buildDailyTrendData(forecastList, timezoneOffsetSeconds) {
@@ -672,19 +708,20 @@ function renderForecastGraph(chartData) {
     const padding = { top: 24, right: 20, bottom: 42, left: 20 };
     const innerWidth = width - padding.left - padding.right;
     const innerHeight = height - padding.top - padding.bottom;
-    const temps = chartData.map((item) => item.main.temp);
+    const temps = chartData.map((item) => toUnitNum(item.main.temp));
     const minTemp = Math.min(...temps);
     const maxTemp = Math.max(...temps);
     const range = Math.max(maxTemp - minTemp, 1);
 
     const points = chartData.map((item, index) => {
+        const convertedTemp = toUnitNum(item.main.temp);
         const x = padding.left + (index * innerWidth) / Math.max(chartData.length - 1, 1);
-        const y = padding.top + ((maxTemp - item.main.temp) / range) * innerHeight;
+        const y = padding.top + ((maxTemp - convertedTemp) / range) * innerHeight;
 
         return {
             x,
             y,
-            temp: Math.round(item.main.temp),
+            temp: convertedTemp,
             label: new Date(item.dt * 1000).toLocaleTimeString('en-US', {
                 hour: 'numeric'
             })
@@ -706,7 +743,7 @@ function renderForecastGraph(chartData) {
     const labels = points.map((point) => `
         <g transform="translate(${point.x}, ${point.y})">
             <circle r="5" class="graph-point"></circle>
-            <text y="-14" text-anchor="middle" class="graph-point-label">${point.temp}${DEGREE}</text>
+            <text y="-14" text-anchor="middle" class="graph-point-label">${point.temp}${currentUnit === 'K' ? 'K' : DEGREE}</text>
             <text y="${height - padding.bottom - point.y + 24}" text-anchor="middle" class="graph-axis-label">${point.label}</text>
         </g>
     `).join('');
