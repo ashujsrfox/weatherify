@@ -100,8 +100,11 @@ cityInput.addEventListener('keypress', (e) => {
 // Autocomplete functionality
 let debounceTimer;
 cityInput.addEventListener('input', (e) => {
-    clearTimeout(debounceTimer);
+    hideError();
     const query = e.target.value.trim();
+    searchBtn.disabled = query.length === 0;
+
+    clearTimeout(debounceTimer);
 
     if (query.length < 2) {
         hideSuggestions();
@@ -257,7 +260,7 @@ async function fetchWeatherData(city) {
         showWeather();
     } catch (error) {
         console.error('Fetch error:', error);
-        showError(error.message || 'Unable to fetch weather data. Please try again.');
+        showError('City not found. Please check spelling and try again.');
     } finally {
         hideLoading();
     }
