@@ -319,8 +319,8 @@ function updateForecastSummary(chartData) {
     const delta = lastTemp - firstTemp;
     const trend =
         delta > 1.5 ? 'Temperatures are expected to rise' :
-        delta < -1.5 ? 'Temperatures are expected to cool down' :
-        'Temperatures are expected to stay fairly steady';
+            delta < -1.5 ? 'Temperatures are expected to cool down' :
+                'Temperatures are expected to stay fairly steady';
 
     forecastSummary.textContent = `${trend} over the next 24 hours, ranging from ${Math.round(minTemp)}${DEGREE}C to ${Math.round(maxTemp)}${DEGREE}C.`;
     graphRange.textContent = `${Math.round(minTemp)}${DEGREE}C - ${Math.round(maxTemp)}${DEGREE}C`;
@@ -382,8 +382,8 @@ function updateWeatherTrends(trendData) {
     const averageDelta = lastAverage - firstAverage;
     const trendText =
         averageDelta > 1.5 ? 'Temperatures rising over the next few days.' :
-        averageDelta < -1.5 ? 'Cooling trend expected over the next few days.' :
-        'Weather remaining stable over the next few days.';
+            averageDelta < -1.5 ? 'Cooling trend expected over the next few days.' :
+                'Weather remaining stable over the next few days.';
     const warmestDay = trendData.reduce((warmest, day) => day.high > warmest.high ? day : warmest, trendData[0]);
     const coolestDay = trendData.reduce((coolest, day) => day.low < coolest.low ? day : coolest, trendData[0]);
 
@@ -754,16 +754,16 @@ setInterval(renderSunPosition, 60000);
 // ============================================================
 (function initDarkMode() {
     const STORAGE_KEY = 'weatherify-theme';
-    const DARK_CLASS  = 'dark-mode';
+    const DARK_CLASS = 'dark-mode';
 
     const toggleBtn = document.getElementById('theme-toggle');
-    const icon      = toggleBtn ? toggleBtn.querySelector('.toggle-icon') : null;
-    const label     = toggleBtn ? toggleBtn.querySelector('.toggle-label') : null;
+    const icon = toggleBtn ? toggleBtn.querySelector('.toggle-icon') : null;
+    const label = toggleBtn ? toggleBtn.querySelector('.toggle-label') : null;
 
     function applyTheme(isDark) {
         document.body.classList.toggle(DARK_CLASS, isDark);
-        if (icon)      icon.textContent  = isDark ? '☀️' : '🌙';
-        if (label)     label.textContent = isDark ? 'Light' : 'Dark';
+        if (icon) icon.textContent = isDark ? '☀️' : '🌙';
+        if (label) label.textContent = isDark ? 'Light' : 'Dark';
         if (toggleBtn) toggleBtn.setAttribute('aria-pressed', String(isDark));
     }
 
@@ -791,3 +791,192 @@ setInterval(renderSunPosition, 60000);
         }
     });
 })();
+
+// ============================================================
+// 💎 PREMIUM EFFECTS (Three.js, GSAP, Custom Cursor)
+// ============================================================
+
+(function initPremiumEffects() {
+    // --- Custom Cursor ---
+    const cursor = document.getElementById('custom-cursor');
+    const cursorBlur = document.getElementById('cursor-blur');
+    let mouseX = 0, mouseY = 0;
+    let cursorX = 0, cursorY = 0;
+    let blurX = 0, blurY = 0;
+
+    document.addEventListener('mousemove', (e) => {
+        mouseX = e.clientX;
+        mouseY = e.clientY;
+    });
+
+    function animateCursor() {
+        // Smooth cursor tracking
+        cursorX += (mouseX - cursorX) * 0.2;
+        cursorY += (mouseY - cursorY) * 0.2;
+        cursor.style.transform = `translate(${cursorX}px, ${cursorY}px)`;
+
+        // Smooth blur tracking (slower for liquid feel)
+        blurX += (mouseX - blurX) * 0.05;
+        blurY += (mouseY - blurY) * 0.05;
+        cursorBlur.style.left = `${blurX}px`;
+        cursorBlur.style.top = `${blurY}px`;
+
+        requestAnimationFrame(animateCursor);
+    }
+    animateCursor();
+
+    // Hover effects for interactive elements
+    const interactives = document.querySelectorAll('button, input, .detail-card, .forecast-card');
+    interactives.forEach(el => {
+        el.addEventListener('mouseenter', () => {
+            gsap.to(cursor, { scale: 4, opacity: 0.3, duration: 0.3 });
+            gsap.to(cursorBlur, { scale: 1.5, opacity: 0.4, duration: 0.5 });
+        });
+        el.addEventListener('mouseleave', () => {
+            gsap.to(cursor, { scale: 1, opacity: 1, duration: 0.3 });
+            gsap.to(cursorBlur, { scale: 1, opacity: 0.15, duration: 0.5 });
+        });
+    });
+
+    // --- Parallax Effect on App Container ---
+    const appContainer = document.querySelector('.weather-app');
+    document.addEventListener('mousemove', (e) => {
+        if (!appContainer) return;
+        const xPct = (e.clientX / window.innerWidth - 0.5) * 2; // -1 to 1
+        const yPct = (e.clientY / window.innerHeight - 0.5) * 2; // -1 to 1
+        
+        gsap.to(appContainer, {
+            rotationY: xPct * 5,
+            rotationX: -yPct * 5,
+            transformPerspective: 1000,
+            duration: 1,
+            ease: 'power2.out'
+        });
+    });
+
+    // --- Three.js Background ---
+    const canvas = document.getElementById('weather-bg');
+    if (!canvas) return;
+
+    const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
+    renderer.setPixelRatio(window.devicePixelRatio);
+    renderer.setSize(window.innerWidth, window.innerHeight);
+
+    const scene = new THREE.Scene();
+    const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+    camera.position.z = 5;
+
+    // Particles
+    const particlesCount = 2000;
+    const posArray = new Float32Array(particlesCount * 3);
+    for (let i = 0; i < particlesCount * 3; i++) {
+        posArray[i] = (Math.random() - 0.5) * 15;
+    }
+
+    const particlesGeometry = new THREE.BufferGeometry();
+    particlesGeometry.setAttribute('position', new THREE.BufferAttribute(posArray, 3));
+
+    const particlesMaterial = new THREE.PointsMaterial({
+        size: 0.02,
+        color: 0x6366f1,
+        transparent: true,
+        opacity: 0.8,
+        blending: THREE.AdditiveBlending
+    });
+
+    const particlesMesh = new THREE.Points(particlesGeometry, particlesMaterial);
+    scene.add(particlesMesh);
+
+    // Floating Blobs (Abstract)
+    const blobGeo = new THREE.SphereGeometry(2, 64, 64);
+    const blobMat = new THREE.MeshPhongMaterial({
+        color: 0x6366f1,
+        shininess: 100,
+        transparent: true,
+        opacity: 0.1,
+    });
+    const blob = new THREE.Mesh(blobGeo, blobMat);
+    scene.add(blob);
+
+    const light = new THREE.DirectionalLight(0xffffff, 1);
+    light.position.set(1, 1, 2);
+    scene.add(light);
+    scene.add(new THREE.AmbientLight(0xffffff, 0.5));
+
+    // Animation Loop
+    function animateThree() {
+        requestAnimationFrame(animateThree);
+        
+        particlesMesh.rotation.y += 0.001;
+        particlesMesh.rotation.x += 0.0005;
+
+        // Follow mouse slightly
+        particlesMesh.position.x += (mouseX / window.innerWidth - 0.5) * 0.1 - particlesMesh.position.x * 0.05;
+        particlesMesh.position.y += -(mouseY / window.innerHeight - 0.5) * 0.1 - particlesMesh.position.y * 0.05;
+
+        blob.rotation.z += 0.002;
+        blob.position.x = Math.sin(Date.now() * 0.001) * 0.5;
+        blob.position.y = Math.cos(Date.now() * 0.001) * 0.5;
+
+        renderer.render(scene, camera);
+    }
+    animateThree();
+
+    // Handle Resize
+    window.addEventListener('resize', () => {
+        camera.aspect = window.innerWidth / window.innerHeight;
+        camera.updateProjectionMatrix();
+        renderer.setSize(window.innerWidth, window.innerHeight);
+    });
+
+    // Update Background based on Weather
+    window.updatePremiumBackground = function(weatherType, isNight) {
+        let color = 0x6366f1; // Default
+        
+        if (weatherType.includes('clear')) {
+            color = isNight ? 0x1e293b : 0xfbbf24;
+        } else if (weatherType.includes('cloud')) {
+            color = 0x94a3b8;
+        } else if (weatherType.includes('rain') || weatherType.includes('drizzle')) {
+            color = 0x3b82f6;
+        } else if (weatherType.includes('snow')) {
+            color = 0xffffff;
+        } else if (weatherType.includes('thunder')) {
+            color = 0x4f46e5;
+        }
+
+        gsap.to(particlesMaterial.color, {
+            r: new THREE.Color(color).r,
+            g: new THREE.Color(color).g,
+            b: new THREE.Color(color).b,
+            duration: 2
+        });
+        gsap.to(blobMat.color, {
+            r: new THREE.Color(color).r,
+            g: new THREE.Color(color).g,
+            b: new THREE.Color(color).b,
+            duration: 2
+        });
+    };
+})();
+
+// Hook into existing updateDynamicBackground
+const originalUpdateDynamicBackground = updateDynamicBackground;
+updateDynamicBackground = function(data) {
+    originalUpdateDynamicBackground(data);
+    if (window.updatePremiumBackground) {
+        const weatherType = (data.weather?.[0]?.main || '').toLowerCase();
+        const isNight = data.weather?.[0]?.icon?.includes('n');
+        window.updatePremiumBackground(weatherType, isNight);
+    }
+    
+    // Animate entrance of new data
+    gsap.from('.weather-app > *', {
+        opacity: 0,
+        y: 20,
+        stagger: 0.1,
+        duration: 0.8,
+        ease: 'power3.out',
+        overwrite: true
+    });
+};
