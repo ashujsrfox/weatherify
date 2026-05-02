@@ -1563,3 +1563,26 @@ body.dark-mode .loading p {
         display: none; /* icon-only on mobile */
     }
 }
+
+/* Utility classes for error messages */
+.text-red-500 {
+    color: #ef4444 !important;
+}
+
+.text-sm {
+    font-size: 0.875rem !important;
+}
+
+.mt-2 {
+    margin-top: 0.5rem !important;
+    margin-left: 0.5rem !important;
+}
+
+/* Disabled Search Button */
+#search-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
+    background: #cbd5e0;
+}
