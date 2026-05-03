@@ -199,18 +199,22 @@ async function fetchWeatherData(city) {
     hideWeather();
 
     try {
-        const [currentResponse, forecastResponse] = await Promise.all([
-            fetch(`${API_BASE}/weather?q=${encodeURIComponent(city)}&units=metric`),
-            fetch(`${API_BASE}/forecast?q=${encodeURIComponent(city)}&units=metric`)
-        ]);
-
-        if (!currentResponse.ok) {
-            const errorData = await parseJsonSafe(currentResponse);
-            throw new Error(errorData?.message || 'City not found');
+        let currentResponse, forecastResponse;
+        try {
+            [currentResponse, forecastResponse] = await Promise.all([
+                fetch(`${API_BASE}/weather?q=${encodeURIComponent(city)}&units=metric`),
+                fetch(`${API_BASE}/forecast?q=${encodeURIComponent(city)}&units=metric`)
+            ]);
+        } catch (networkError) {
+            throw new Error('Network error, please try again');
         }
-        if (!forecastResponse.ok) {
-            const errorData = await parseJsonSafe(forecastResponse);
-            throw new Error(errorData?.message || 'Forecast unavailable');
+
+        if (currentResponse.status === 404) {
+            throw new Error('City not found');
+        }
+
+        if (!currentResponse.ok || !forecastResponse.ok) {
+            throw new Error('Something went wrong');
         }
 
         const currentData = await currentResponse.json();
@@ -221,7 +225,7 @@ async function fetchWeatherData(city) {
         showWeather();
     } catch (error) {
         console.error('Fetch error:', error);
-        showError(error.message || 'Unable to fetch weather data. Please try again.');
+        showError(error.message);
     } finally {
         hideLoading();
     }
