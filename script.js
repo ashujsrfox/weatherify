@@ -221,6 +221,12 @@ async function fetchWeatherByCoords(lat, lon) {
         const currentData = await currentResponse.json();
         const forecastData = await forecastResponse.json();
 
+        if (!currentData || !currentData.name || !currentData.sys || !forecastData || !forecastData.list) {
+            throw new Error('Unable to fetch location weather');
+        }
+
+        rawData.current = currentData;
+        rawData.forecast = forecastData;
         updateUI(currentData);
         updateForecastUI(forecastData);
         showWeather();
@@ -252,6 +258,10 @@ async function fetchWeatherData(city) {
 
         const currentData = await currentResponse.json();
         const forecastData = await forecastResponse.json();
+
+        if (!currentData || !currentData.name || !currentData.sys || !forecastData || !forecastData.list) {
+            throw new Error('City not found');
+        }
 
         rawData.current = currentData;
         rawData.forecast = forecastData;
