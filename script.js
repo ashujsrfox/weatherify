@@ -162,7 +162,7 @@ function displaySuggestions(cities) {
         suggestion.addEventListener('click', () => {
             cityInput.value = city.name;
             hideSuggestions();
-            fetchWeatherData(city.name);
+            executeWeatherFetch(() => fetchWeatherData(city.name));
         });
 
         suggestionsContainer.appendChild(suggestion);
@@ -180,90 +180,89 @@ window.addEventListener('DOMContentLoaded', () => {
     detectUserLocation();
 });
 
-function handleSearch() {
-    const city = cityInput.value.trim();
-    if (city) {
-        fetchWeatherData(city);
-    }
-}
-function detectUserLocation() {
-    if (!navigator.geolocation) {
-        fetchWeatherData('London');
-        return;
-    }
-
-    navigator.geolocation.getCurrentPosition(
-        (position) => {
-            const { latitude, longitude } = position.coords;
-            fetchWeatherByCoords(latitude, longitude);
-        },
-        () => {
-            fetchWeatherData('London');
-        }
-    );
-}
-
-async function fetchWeatherByCoords(lat, lon) {
+async function executeWeatherFetch(fetchAction) {
     showLoading();
     hideError();
     hideWeather();
 
     try {
-        const [currentResponse, forecastResponse] = await Promise.all([
-            fetch(`${API_BASE}/weather?lat=${lat}&lon=${lon}&units=metric`),
-            fetch(`${API_BASE}/forecast?lat=${lat}&lon=${lon}&units=metric`)
-        ]);
-
-        if (!currentResponse.ok || !forecastResponse.ok) {
-            throw new Error('Unable to fetch location weather');
-        }
-
-        const currentData = await currentResponse.json();
-        const forecastData = await forecastResponse.json();
-
-        updateUI(currentData);
-        updateForecastUI(forecastData);
-        showWeather();
-    } catch (error) {
-        fetchWeatherData('London');
-    } finally {
-        hideLoading();
-    }
-}
-async function fetchWeatherData(city) {
-    showLoading();
-    hideError();
-    hideWeather();
-
-    try {
-        const [currentResponse, forecastResponse] = await Promise.all([
-            fetch(`${API_BASE}/weather?q=${encodeURIComponent(city)}&units=standard`),
-            fetch(`${API_BASE}/forecast?q=${encodeURIComponent(city)}&units=standard`)
-        ]);
-
-        if (!currentResponse.ok) {
-            const errorData = await parseJsonSafe(currentResponse);
-            throw new Error(errorData?.message || 'City not found');
-        }
-        if (!forecastResponse.ok) {
-            const errorData = await parseJsonSafe(forecastResponse);
-            throw new Error(errorData?.message || 'Forecast unavailable');
-        }
-
-        const currentData = await currentResponse.json();
-        const forecastData = await forecastResponse.json();
-
-        rawData.current = currentData;
-        rawData.forecast = forecastData;
-        updateUI(currentData);
-        updateForecastUI(forecastData);
-        showWeather();
+        await fetchAction();
     } catch (error) {
         console.error('Fetch error:', error);
         showError('City not found. Please check spelling and try again.');
     } finally {
         hideLoading();
     }
+}
+
+function handleSearch() {
+    const city = cityInput.value.trim();
+    if (city) {
+        executeWeatherFetch(() => fetchWeatherData(city));
+    }
+}
+
+function detectUserLocation() {
+    executeWeatherFetch(async () => {
+        if (!navigator.geolocation) {
+            await fetchWeatherData('London');
+            return;
+        }
+
+        try {
+            const position = await new Promise((resolve, reject) => {
+                navigator.geolocation.getCurrentPosition(resolve, reject);
+            });
+            await fetchWeatherByCoords(position.coords.latitude, position.coords.longitude);
+        } catch {
+            await fetchWeatherData('London');
+        }
+    });
+}
+
+async function fetchWeatherByCoords(lat, lon) {
+    const [currentResponse, forecastResponse] = await Promise.all([
+        fetch(`${API_BASE}/weather?lat=${lat}&lon=${lon}&units=standard`),
+        fetch(`${API_BASE}/forecast?lat=${lat}&lon=${lon}&units=standard`)
+    ]);
+
+    if (!currentResponse.ok || !forecastResponse.ok) {
+        throw new Error('Unable to fetch location weather');
+    }
+
+    const currentData = await currentResponse.json();
+    const forecastData = await forecastResponse.json();
+
+    rawData.current = currentData;
+    rawData.forecast = forecastData;
+    updateUI(currentData);
+    updateForecastUI(forecastData);
+    showWeather();
+}
+
+async function fetchWeatherData(city) {
+    const [currentResponse, forecastResponse] = await Promise.all([
+        fetch(`${API_BASE}/weather?q=${encodeURIComponent(city)}&units=standard`),
+        fetch(`${API_BASE}/forecast?q=${encodeURIComponent(city)}&units=standard`)
+    ]);
+
+    if (!currentResponse.ok) {
+        const errorData = await parseJsonSafe(currentResponse);
+        throw new Error(errorData?.message || 'City not found');
+    }
+    if (!forecastResponse.ok) {
+        const errorData = await parseJsonSafe(forecastResponse);
+        throw new Error(errorData?.message || 'Forecast unavailable');
+    }
+
+    const currentData = await currentResponse.json();
+    const forecastData = await forecastResponse.json();
+
+    rawData.current = currentData;
+    rawData.forecast = forecastData;
+    updateUI(currentData);
+    updateForecastUI(forecastData);
+    showWeather();
 }
 
 function updateUI(data) {
@@ -761,10 +760,12 @@ function renderForecastGraph(chartData) {
 
 function showLoading() {
     loading.classList.remove('hidden');
+    searchBtn.disabled = true;
 }
 
 function hideLoading() {
     loading.classList.add('hidden');
+    searchBtn.disabled = cityInput.value.trim().length === 0;
 }
 
 function showWeather() {
