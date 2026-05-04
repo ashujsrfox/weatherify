@@ -20,11 +20,21 @@
                     <span class="toggle-icon" aria-hidden="true">🌙</span>
                     <span class="toggle-label">Dark</span>
                 </button>
-                <div class="search-box">
-                    <input type="text" id="city-input" placeholder="Enter city name..." autocomplete="off">
-                    <button id="search-btn">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><path d="m21 21-4.3-4.3"></path></svg>
-                    </button>
+                <div class="unit-toggle" role="group" aria-label="Temperature unit">
+                    <button class="unit-btn active" data-unit="C">°C</button>
+                    <button class="unit-btn" data-unit="F">°F</button>
+                    <button class="unit-btn" data-unit="K">K</button>
+                </div>
+                <div class="search-container" style="order: 2; flex-shrink: 0; display: flex; flex-direction: column; width: 100%; max-width: 500px;">
+                    <div class="search-box" style="width: 100%; max-width: none;">
+                        <input type="text" id="city-input" placeholder="Enter city name..." autocomplete="off">
+                        <button id="search-btn" disabled>
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><path d="m21 21-4.3-4.3"></path></svg>
+                        </button>
+                    </div>
+                    <div id="error-message" class="hidden text-red-500 text-sm mt-2">
+                        <p>City not found. Please check spelling and try again.</p>
+                    </div>
                 </div>
             </header>
 
@@ -198,9 +208,7 @@
                 <p>Loading weather data...</p>
             </div>
 
-            <div id="error-message" class="error hidden">
-                <p>Unable to fetch weather data. Please check the city name and try again.</p>
-            </div>
+
         </div>
     </div>
 
