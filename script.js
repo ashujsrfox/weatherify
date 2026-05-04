@@ -89,7 +89,10 @@ document.querySelectorAll('.unit-btn').forEach(btn => {
 });
 
 // Event Listeners
-searchBtn.addEventListener('click', handleSearch);
+searchBtn.addEventListener('click', () => {
+    hideSuggestions();
+    handleSearch();
+});
 cityInput.addEventListener('keypress', (e) => {
     if (e.key === 'Enter') {
         hideSuggestions();
