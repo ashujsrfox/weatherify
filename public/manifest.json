@@ -1,0 +1,17 @@
+{
+  "name": "Weatherify App",
+  "short_name": "Weatherify",
+  "description": "A beautiful and progressive weather application",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#1e293b",
+  "theme_color": "#1e293b",
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "192x192 512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
