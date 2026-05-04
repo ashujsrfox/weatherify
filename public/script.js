@@ -2,6 +2,10 @@
 const API_BASE = '/api';
 const ICON_URL = 'https://openweathermap.org/img/wn';
 const DEGREE = '\u00B0';
+const unitElement = document.querySelector('.unit');
+
+
+unitElement.textContent = unitLabel();
 
 let currentUnit = 'C';
 let rawData = { current: null, forecast: null };
@@ -211,7 +215,7 @@ function detectUserLocation() {
 async function fetchWeatherByCoords(lat, lon) {
     showLoading();
     hideError();
-    hideWeather();
+    // hideWeather();
 
     try {
         const [currentResponse, forecastResponse] = await Promise.all([
@@ -235,7 +239,7 @@ async function fetchWeatherByCoords(lat, lon) {
         localStorage.setItem('weatherify-last-data', JSON.stringify(rawData));
         updateUI(currentData);
         updateForecastUI(forecastData);
-        showWeather();
+        // showWeather();
     } catch (error) {
         if (!navigator.onLine) {
             const cachedData = localStorage.getItem('weatherify-last-data');
@@ -243,7 +247,7 @@ async function fetchWeatherByCoords(lat, lon) {
                 rawData = JSON.parse(cachedData);
                 updateUI(rawData.current);
                 updateForecastUI(rawData.forecast);
-                showWeather();
+                // showWeather();
                 showError('You are offline. Showing last known weather data.');
                 hideLoading();
                 return;
@@ -257,7 +261,7 @@ async function fetchWeatherByCoords(lat, lon) {
 async function fetchWeatherData(city) {
     showLoading();
     hideError();
-    hideWeather();
+    // hideWeather();
 
     try {
         const [currentResponse, forecastResponse] = await Promise.all([
@@ -286,7 +290,7 @@ async function fetchWeatherData(city) {
         localStorage.setItem('weatherify-last-data', JSON.stringify(rawData));
         updateUI(currentData);
         updateForecastUI(forecastData);
-        showWeather();
+        // showWeather();
     } catch (error) {
         console.error('Fetch error:', error);
         if (!navigator.onLine) {
@@ -295,7 +299,7 @@ async function fetchWeatherData(city) {
                 rawData = JSON.parse(cachedData);
                 updateUI(rawData.current);
                 updateForecastUI(rawData.forecast);
-                showWeather();
+                // showWeather();
                 showError('You are offline. Showing last known weather data.');
                 hideLoading();
                 return;
@@ -312,7 +316,7 @@ function updateUI(data) {
     dateElement.textContent = formatDateAtOffset(Math.floor(Date.now() / 1000), data.timezone);
 
     tempElement.textContent = toUnitNum(data.main.temp);
-    document.querySelector('.unit').textContent = unitLabel();
+    // document.querySelector('.unit').textContent = unitLabel();
     weatherDesc.textContent = data.weather[0].description;
 
     const iconCode = data.weather[0].icon;
