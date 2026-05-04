@@ -177,6 +177,11 @@ function hideSuggestions() {
 
 // Initialize with default city
 window.addEventListener('DOMContentLoaded', () => {
+    if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('/sw.js').catch((err) => {
+            console.error('Service Worker registration failed:', err);
+        });
+    }
     detectUserLocation();
 });
 
@@ -227,10 +232,23 @@ async function fetchWeatherByCoords(lat, lon) {
 
         rawData.current = currentData;
         rawData.forecast = forecastData;
+        localStorage.setItem('weatherify-last-data', JSON.stringify(rawData));
         updateUI(currentData);
         updateForecastUI(forecastData);
         showWeather();
     } catch (error) {
+        if (!navigator.onLine) {
+            const cachedData = localStorage.getItem('weatherify-last-data');
+            if (cachedData) {
+                rawData = JSON.parse(cachedData);
+                updateUI(rawData.current);
+                updateForecastUI(rawData.forecast);
+                showWeather();
+                showError('You are offline. Showing last known weather data.');
+                hideLoading();
+                return;
+            }
+        }
         fetchWeatherData('London');
     } finally {
         hideLoading();
@@ -265,11 +283,24 @@ async function fetchWeatherData(city) {
 
         rawData.current = currentData;
         rawData.forecast = forecastData;
+        localStorage.setItem('weatherify-last-data', JSON.stringify(rawData));
         updateUI(currentData);
         updateForecastUI(forecastData);
         showWeather();
     } catch (error) {
         console.error('Fetch error:', error);
+        if (!navigator.onLine) {
+            const cachedData = localStorage.getItem('weatherify-last-data');
+            if (cachedData) {
+                rawData = JSON.parse(cachedData);
+                updateUI(rawData.current);
+                updateForecastUI(rawData.forecast);
+                showWeather();
+                showError('You are offline. Showing last known weather data.');
+                hideLoading();
+                return;
+            }
+        }
         showError('City not found. Please check spelling and try again.');
     } finally {
         hideLoading();
