@@ -2,11 +2,27 @@ require('dotenv').config();
 
 const express = require('express');
 const path = require('path');
+const rateLimit = require('express-rate-limit');
 
 const OPENWEATHER_API_KEY = process.env.OPENWEATHER_API_KEY;
 const PORT = Number(process.env.PORT) || 3000;
 
 const app = express();
+
+/**
+ * Rate limiter — 100 requests per 15 minutes per IP.
+ * Applied to all /api/ routes to protect the OpenWeatherMap API key
+ * from exhaustion by malicious actors or rogue scripts.
+ */
+const apiLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    max: 100,                  // max requests per windowMs per IP
+    standardHeaders: true,     // return rate-limit info in RateLimit-* headers
+    legacyHeaders: false,      // disable X-RateLimit-* headers
+    message: { cod: 429, message: 'Too many requests, please try again later.' }
+});
+
+app.use('/api/', apiLimiter);
 
 /**
  * Forwards query string to OpenWeatherMap, injecting appid from env (never from client).
