@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="theme-color" content="#1e293b">
-    <title>Weatherify</title>
+    <title>Weather App</title>
     <link rel="manifest" href="/manifest.json">
     <link rel="stylesheet" href="style.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -53,6 +53,36 @@
                             <span class="unit">&deg;C</span>
                         </div>
                         <p id="weather-desc">Weather Description</p>
+                    </div>
+
+                    <!-- Best Time to Go Outside Card -->
+                    <div class="best-time-card" id="best-time-card">
+                        <div class="best-time-header">
+                            <div class="best-time-icon">🌿</div>
+                            <h3>Best Time to Go Outside</h3>
+                        </div>
+                        <div class="best-time-result" id="best-time-result">
+                            <div class="best-time-slot">--</div>
+                            <div class="best-time-reason" id="best-time-reason">Analyzing forecast data...</div>
+                        </div>
+                        <div class="best-time-details hidden" id="best-time-details">
+                            <div class="best-time-metric">
+                                <span>🌡️ Temp</span>
+                                <span id="best-temp">--</span>
+                            </div>
+                            <div class="best-time-metric">
+                                <span>🌧️ Rain</span>
+                                <span id="best-rain">--</span>
+                            </div>
+                            <div class="best-time-metric">
+                                <span>💨 Wind</span>
+                                <span id="best-wind">--</span>
+                            </div>
+                            <div class="best-time-metric">
+                                <span>⭐ Score</span>
+                                <span id="best-score">--</span>
+                            </div>
+                        </div>
                     </div>
 
                 </div>
@@ -204,40 +234,6 @@
                     </div>
                 </section>
             </main>
-
-            <section class="dashboard" id="dashboard" aria-label="Saved cities dashboard">
-                <div class="dashboard-header">
-                    <div>
-                        <h2>Saved Cities</h2>
-                        <p id="dashboard-subtitle">Save up to 20 locations for quick switching and comparison.</p>
-                    </div>
-                    <div class="dashboard-controls">
-                        <button id="save-city-btn" class="dashboard-btn" type="button" disabled>Save current</button>
-                        <button id="compare-toggle-btn" class="dashboard-btn" type="button" aria-pressed="false">Compare</button>
-                        <label class="dashboard-sort" for="city-sort">
-                            Sort
-                            <select id="city-sort">
-                                <option value="pinned">Pinned first</option>
-                                <option value="hottest">Hottest</option>
-                                <option value="coldest">Coldest</option>
-                                <option value="rain">Rain risk</option>
-                                <option value="alerts">Alerts</option>
-                                <option value="alpha">A-Z</option>
-                            </select>
-                        </label>
-                    </div>
-                </div>
-
-                <div id="compare-panel" class="compare-panel hidden" aria-live="polite">
-                    <div class="compare-header">
-                        <strong>Compare mode</strong>
-                        <span id="compare-count">Select 2-4 cities</span>
-                    </div>
-                    <div id="compare-cards" class="compare-cards"></div>
-                </div>
-
-                <div id="city-cards" class="city-cards"></div>
-            </section>
 
             <div id="loading" class="loading hidden">
                 <div class="spinner"></div>

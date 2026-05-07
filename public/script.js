@@ -2,11 +2,9 @@
 const API_BASE = '/api';
 const ICON_URL = 'https://openweathermap.org/img/wn';
 const DEGREE = '\u00B0';
+
 let currentUnit = 'C';
 let rawData = { current: null, forecast: null };
-const unitElement = document.querySelector('.unit');
-
-unitElement.textContent = unitLabel();
 
 function toUnit(kelvin) {
     if (currentUnit === 'C') return `${Math.round(kelvin - 273.15)}${DEGREE}C`;
@@ -73,31 +71,141 @@ const trendStats = document.getElementById('trend-stats');
 const trendChartLabel = document.getElementById('trend-chart-label');
 const trendChartRange = document.getElementById('trend-chart-range');
 const trendControls = document.querySelector('.trend-controls');
-const saveCityBtn = document.getElementById('save-city-btn');
-const compareToggleBtn = document.getElementById('compare-toggle-btn');
-const citySort = document.getElementById('city-sort');
-const cityCards = document.getElementById('city-cards');
-const comparePanel = document.getElementById('compare-panel');
-const compareCards = document.getElementById('compare-cards');
-const compareCount = document.getElementById('compare-count');
 let sunTimeline = null;
 let dailyTrendData = [];
 let selectedTrendMetric = 'avg';
 
-const STORAGE_KEYS = {
-    cities: 'weatherify-cities',
-    cache: 'weatherify-city-cache',
-    compare: 'weatherify-compare',
-    sort: 'weatherify-city-sort'
-};
-const MAX_SAVED_CITIES = 20;
-const CACHE_TTL_MS = 10 * 60 * 1000;
+// Best Time elements
+const bestTimeSlot = document.getElementById('best-time-result')?.querySelector('.best-time-slot');
+const bestTimeReason = document.getElementById('best-time-reason');
+const bestTimeDetails = document.getElementById('best-time-details');
+const bestTemp = document.getElementById('best-temp');
+const bestRain = document.getElementById('best-rain');
+const bestWind = document.getElementById('best-wind');
+const bestScore = document.getElementById('best-score');
 
-let savedCities = loadSavedCities();
-let compareSelection = loadCompareSelection();
-let selectedSort = loadSortPreference();
-let compareMode = false;
-const cityState = new Map();
+function calculateBestTimeToGoOutside(forecastData) {
+    if (!forecastData || !forecastData.list || forecastData.list.length === 0) {
+        return null;
+    }
+
+    const intervals = [];
+    const now = Math.floor(Date.now() / 1000);
+    
+    const todayForecasts = forecastData.list.filter(item => {
+        const itemTime = item.dt;
+        return itemTime >= now && itemTime <= now + 86400;
+    });
+
+    if (todayForecasts.length === 0) return null;
+
+    const scoredIntervals = todayForecasts.map(interval => {
+        const tempCelsius = interval.main.temp - 273.15;
+        const rainProb = interval.pop || 0; 
+        const windSpeedMs = interval.wind.speed;
+        const windSpeedKmh = windSpeedMs * 3.6;
+        
+        let tempScore = 0;
+        if (tempCelsius >= 18 && tempCelsius <= 25) {
+            tempScore = 100;
+        } else if (tempCelsius >= 15 && tempCelsius < 18) {
+            tempScore = 70;
+        } else if (tempCelsius > 25 && tempCelsius <= 30) {
+            tempScore = 60;
+        } else if (tempCelsius > 30 && tempCelsius <= 35) {
+            tempScore = 30;
+        } else if (tempCelsius < 10) {
+            tempScore = 20;
+        } else if (tempCelsius >= 10 && tempCelsius < 15) {
+            tempScore = 50;
+        } else {
+            tempScore = 40;
+        }
+        
+        // Rain score: lower rain probability is better
+        let rainScore = 100;
+        if (rainProb > 0.7) rainScore = 0;
+        else if (rainProb > 0.5) rainScore = 30;
+        else if (rainProb > 0.3) rainScore = 60;
+        else if (rainProb > 0.1) rainScore = 85;
+        
+        // Wind score: light wind is best
+        let windScore = 100;
+        if (windSpeedKmh > 40) windScore = 0;
+        else if (windSpeedKmh > 30) windScore = 30;
+        else if (windSpeedKmh > 20) windScore = 60;
+        else if (windSpeedKmh > 15) windScore = 80;
+        
+        const totalScore = (tempScore * 0.5) + (rainScore * 0.3) + (windScore * 0.2);
+        
+        const date = new Date(interval.dt * 1000);
+        const startHour = date.getHours();
+        const endHour = startHour + 3;
+        const timeRange = `${startHour}${endHour <= 12 ? ' AM' : ' PM'}`.replace('0', '12').replace('24', '12');
+        const formattedRange = `${startHour % 12 || 12}–${endHour % 12 || 12} ${startHour < 12 ? 'AM' : 'PM'}`;
+        
+        return {
+            startHour,
+            endHour,
+            timeRange: formattedRange,
+            temp: Math.round(tempCelsius),
+            rainProb: Math.round(rainProb * 100),
+            windSpeed: Math.round(windSpeedKmh),
+            score: Math.round(totalScore),
+            rawTemp: tempCelsius,
+            rawRain: rainProb,
+            rawWind: windSpeedKmh,
+            tempScore,
+            rainScore,
+            windScore
+        };
+    });
+    
+    scoredIntervals.sort((a, b) => b.score - a.score);
+    return scoredIntervals[0];
+}
+
+function updateBestTimeUI(bestTime) {
+    if (!bestTimeSlot || !bestTimeReason) return;
+    
+    if (!bestTime || bestTime.score < 30) {
+        bestTimeSlot.textContent = "Not Ideal Today";
+        bestTimeReason.textContent = "Weather conditions aren't favorable for outdoor activities today.";
+        bestTimeDetails?.classList.add('hidden');
+        return;
+    }
+    
+    bestTimeSlot.textContent = bestTime.timeRange;
+    
+    let reason = "";
+    if (bestTime.score >= 80) {
+        reason = "Perfect conditions! 🌟";
+    } else if (bestTime.score >= 65) {
+        reason = "Good time to go out 👍";
+    } else if (bestTime.score >= 50) {
+        reason = "Decent conditions, but check weather first";
+    } else {
+        reason = "Better than other times today";
+    }
+    
+    bestTimeReason.textContent = reason;
+    
+    if (bestTemp && bestRain && bestWind && bestScore && bestTimeDetails) {
+        bestTemp.textContent = `${bestTime.temp}°C`;
+        bestRain.textContent = `${bestTime.rainProb}%`;
+        bestWind.textContent = `${bestTime.windSpeed} km/h`;
+        bestScore.textContent = `${bestTime.score}/100`;
+        bestTimeDetails.classList.remove('hidden');
+        
+        if (bestTime.score >= 70) {
+            bestScore.style.color = '#10b981';
+        } else if (bestTime.score >= 50) {
+            bestScore.style.color = '#f59e0b';
+        } else {
+            bestScore.style.color = '#ef4444';
+        }
+    }
+}
 
 // Unit toggle
 document.querySelectorAll('.unit-btn').forEach(btn => {
@@ -111,35 +219,6 @@ document.querySelectorAll('.unit-btn').forEach(btn => {
         }
     });
 });
-
-if (citySort) {
-    citySort.value = selectedSort;
-    citySort.addEventListener('change', () => {
-        selectedSort = citySort.value;
-        localStorage.setItem(STORAGE_KEYS.sort, selectedSort);
-        renderDashboard();
-    });
-}
-
-if (compareToggleBtn) {
-    compareToggleBtn.addEventListener('click', () => {
-        compareMode = !compareMode;
-        compareToggleBtn.setAttribute('aria-pressed', String(compareMode));
-        compareToggleBtn.classList.toggle('is-active', compareMode);
-        renderDashboard();
-    });
-}
-
-if (saveCityBtn) {
-    saveCityBtn.addEventListener('click', () => {
-        if (!rawData.current) return;
-        const city = buildCityFromCurrent(rawData.current);
-        upsertSavedCity(city);
-        syncSaveButton();
-        renderDashboard();
-        refreshCityData(city);
-    });
-}
 
 // Event Listeners
 searchBtn.addEventListener('click', handleSearch);
@@ -235,7 +314,6 @@ window.addEventListener('DOMContentLoaded', () => {
             console.error('Service Worker registration failed:', err);
         });
     }
-    initDashboard();
     detectUserLocation();
 });
 
@@ -244,11 +322,6 @@ function handleSearch() {
     if (city) {
         fetchWeatherData(city);
     }
-}
-
-function initDashboard() {
-    renderDashboard();
-    refreshSavedCities();
 }
 function detectUserLocation() {
     if (!navigator.geolocation) {
@@ -270,12 +343,12 @@ function detectUserLocation() {
 async function fetchWeatherByCoords(lat, lon) {
     showLoading();
     hideError();
-    // hideWeather();
+    hideWeather();
 
     try {
         const [currentResponse, forecastResponse] = await Promise.all([
-            fetch(`${API_BASE}/weather?lat=${lat}&lon=${lon}&units=standard`),
-            fetch(`${API_BASE}/forecast?lat=${lat}&lon=${lon}&units=standard`)
+            fetch(`${API_BASE}/weather?lat=${lat}&lon=${lon}&units=metric`),
+            fetch(`${API_BASE}/forecast?lat=${lat}&lon=${lon}&units=metric`)
         ]);
 
         if (!currentResponse.ok || !forecastResponse.ok) {
@@ -294,7 +367,7 @@ async function fetchWeatherByCoords(lat, lon) {
         localStorage.setItem('weatherify-last-data', JSON.stringify(rawData));
         updateUI(currentData);
         updateForecastUI(forecastData);
-        // showWeather();
+        showWeather();
     } catch (error) {
         if (!navigator.onLine) {
             const cachedData = localStorage.getItem('weatherify-last-data');
@@ -302,7 +375,7 @@ async function fetchWeatherByCoords(lat, lon) {
                 rawData = JSON.parse(cachedData);
                 updateUI(rawData.current);
                 updateForecastUI(rawData.forecast);
-                // showWeather();
+                showWeather();
                 showError('You are offline. Showing last known weather data.');
                 hideLoading();
                 return;
@@ -316,7 +389,7 @@ async function fetchWeatherByCoords(lat, lon) {
 async function fetchWeatherData(city) {
     showLoading();
     hideError();
-    // hideWeather();
+    hideWeather();
 
     try {
         const [currentResponse, forecastResponse] = await Promise.all([
@@ -345,7 +418,7 @@ async function fetchWeatherData(city) {
         localStorage.setItem('weatherify-last-data', JSON.stringify(rawData));
         updateUI(currentData);
         updateForecastUI(forecastData);
-        // showWeather();
+        showWeather();
     } catch (error) {
         console.error('Fetch error:', error);
         if (!navigator.onLine) {
@@ -354,7 +427,7 @@ async function fetchWeatherData(city) {
                 rawData = JSON.parse(cachedData);
                 updateUI(rawData.current);
                 updateForecastUI(rawData.forecast);
-                // showWeather();
+                showWeather();
                 showError('You are offline. Showing last known weather data.');
                 hideLoading();
                 return;
@@ -371,7 +444,7 @@ function updateUI(data) {
     dateElement.textContent = formatDateAtOffset(Math.floor(Date.now() / 1000), data.timezone);
 
     tempElement.textContent = toUnitNum(data.main.temp);
-    // document.querySelector('.unit').textContent = unitLabel();
+    document.querySelector('.unit').textContent = unitLabel();
     weatherDesc.textContent = data.weather[0].description;
 
     const iconCode = data.weather[0].icon;
@@ -388,8 +461,6 @@ function updateUI(data) {
 
     updateSunPosition(data);
     updateDynamicBackground(data);
-
-    syncSaveButton();
 }
 
 function updateForecastUI(forecastData) {
@@ -441,6 +512,9 @@ function updateForecastUI(forecastData) {
     updateForecastSummary(chartData);
     renderForecastGraph(chartData);
     updateWeatherTrends(dailyTrendData);
+    
+    const bestTime = calculateBestTimeToGoOutside(forecastData);
+    updateBestTimeUI(bestTime);
 }
 
 function updateForecastSummary(chartData) {
@@ -861,387 +935,6 @@ function renderForecastGraph(chartData) {
     `;
 }
 
-function loadSavedCities() {
-    try {
-        const stored = localStorage.getItem(STORAGE_KEYS.cities);
-        const parsed = stored ? JSON.parse(stored) : [];
-        return Array.isArray(parsed) ? parsed : [];
-    } catch {
-        return [];
-    }
-}
-
-function persistSavedCities() {
-    localStorage.setItem(STORAGE_KEYS.cities, JSON.stringify(savedCities));
-}
-
-function loadCompareSelection() {
-    try {
-        const stored = localStorage.getItem(STORAGE_KEYS.compare);
-        const parsed = stored ? JSON.parse(stored) : [];
-        return Array.isArray(parsed) ? parsed : [];
-    } catch {
-        return [];
-    }
-}
-
-function loadSortPreference() {
-    return localStorage.getItem(STORAGE_KEYS.sort) || 'pinned';
-}
-
-function buildCityId({ name, country, lat, lon }) {
-    const latKey = Number(lat).toFixed(3);
-    const lonKey = Number(lon).toFixed(3);
-    return `${name}|${country}|${latKey}|${lonKey}`;
-}
-
-function buildCityFromCurrent(data) {
-    const city = {
-        name: data.name,
-        country: data.sys.country,
-        state: data.state || '',
-        lat: data.coord.lat,
-        lon: data.coord.lon,
-        pinned: false,
-        addedAt: Date.now(),
-        lastViewedAt: Date.now()
-    };
-    city.id = buildCityId(city);
-    return city;
-}
-
-function upsertSavedCity(city) {
-    const existingIndex = savedCities.findIndex((item) => item.id === city.id);
-    if (existingIndex >= 0) {
-        savedCities[existingIndex] = { ...savedCities[existingIndex], ...city };
-    } else {
-        if (savedCities.length >= MAX_SAVED_CITIES) {
-            savedCities.pop();
-        }
-        savedCities.unshift(city);
-    }
-    persistSavedCities();
-}
-
-function removeSavedCity(cityId) {
-    savedCities = savedCities.filter((city) => city.id !== cityId);
-    compareSelection = compareSelection.filter((id) => id !== cityId);
-    persistSavedCities();
-    localStorage.setItem(STORAGE_KEYS.compare, JSON.stringify(compareSelection));
-    syncSaveButton();
-    renderDashboard();
-}
-
-function togglePinCity(cityId) {
-    savedCities = savedCities.map((city) => {
-        if (city.id !== cityId) return city;
-        return { ...city, pinned: !city.pinned };
-    });
-    persistSavedCities();
-    renderDashboard();
-}
-
-function toggleCompareCity(cityId) {
-    if (compareSelection.includes(cityId)) {
-        compareSelection = compareSelection.filter((id) => id !== cityId);
-    } else {
-        if (compareSelection.length >= 4) return;
-        compareSelection = [...compareSelection, cityId];
-    }
-    localStorage.setItem(STORAGE_KEYS.compare, JSON.stringify(compareSelection));
-    renderDashboard();
-}
-
-function getCityState(cityId) {
-    if (!cityState.has(cityId)) {
-        cityState.set(cityId, { status: 'idle', current: null, forecast: null, error: null });
-    }
-    return cityState.get(cityId);
-}
-
-function renderDashboard() {
-    renderComparePanel();
-    renderCityCards();
-}
-
-function renderComparePanel() {
-    if (!comparePanel || !compareCards || !compareCount) return;
-
-    comparePanel.classList.toggle('hidden', !compareMode);
-    const filteredSelection = compareSelection.filter((id) => savedCities.some((city) => city.id === id));
-    if (filteredSelection.length !== compareSelection.length) {
-        compareSelection = filteredSelection;
-        localStorage.setItem(STORAGE_KEYS.compare, JSON.stringify(compareSelection));
-    }
-    compareCount.textContent = compareSelection.length < 2
-        ? 'Select 2-4 cities'
-        : `Selected ${compareSelection.length} of 4`;
-
-    if (!compareMode) {
-        compareCards.innerHTML = '';
-        return;
-    }
-
-    const selectedCities = savedCities.filter((city) => compareSelection.includes(city.id));
-    compareCards.innerHTML = selectedCities.map((city) => renderCityCard(city, getCityState(city.id), true)).join('');
-}
-
-function renderCityCards() {
-    if (!cityCards) return;
-
-    const sortedCities = getSortedCities();
-    if (!sortedCities.length) {
-        cityCards.innerHTML = '<div class="city-empty">No saved cities yet. Search for a city and click Save.</div>';
-        return;
-    }
-
-    cityCards.innerHTML = sortedCities.map((city) => renderCityCard(city, getCityState(city.id), false)).join('');
-
-    cityCards.querySelectorAll('[data-action]').forEach((button) => {
-        button.addEventListener('click', (event) => {
-            event.stopPropagation();
-            const action = button.dataset.action;
-            const cityId = button.closest('.city-card')?.dataset.cityId;
-            if (!cityId) return;
-
-            if (action === 'pin') togglePinCity(cityId);
-            if (action === 'remove') removeSavedCity(cityId);
-            if (action === 'compare') toggleCompareCity(cityId);
-        });
-    });
-
-    cityCards.querySelectorAll('.city-card').forEach((card) => {
-        card.addEventListener('click', () => {
-            const cityId = card.dataset.cityId;
-            const city = savedCities.find((item) => item.id === cityId);
-            if (!city) return;
-            fetchWeatherByCoords(city.lat, city.lon);
-        });
-    });
-}
-
-function renderCityCard(city, state, isCompare) {
-    const isLoading = state.status === 'loading';
-    const isError = state.status === 'error';
-    const data = state.current;
-    const forecast = state.forecast;
-    const iconCode = data?.weather?.[0]?.icon;
-    const description = data?.weather?.[0]?.description || '--';
-    const tempValue = data ? toUnitNum(data.main.temp) : '--';
-    const feelsValue = data ? toUnit(data.main.feels_like) : '--';
-    const windValue = data ? `${Math.round(data.wind.speed * 3.6)} km/h` : '--';
-    const trend = forecast ? buildTrendSummary(forecast.list || []) : null;
-    const compareActive = compareSelection.includes(city.id);
-
-    return `
-        <article class="city-card" data-city-id="${city.id}">
-            <div class="city-card-header">
-                <div>
-                    <div class="city-name">${city.name}, ${city.country}</div>
-                    <div class="city-subtitle">${city.pinned ? 'Pinned' : 'Saved city'}</div>
-                </div>
-                ${isCompare ? '' : `
-                    <div class="city-actions">
-                        <button class="city-action-btn ${city.pinned ? 'is-active' : ''}" data-action="pin" type="button">Pin</button>
-                        ${compareMode ? `<button class="city-action-btn ${compareActive ? 'is-active' : ''}" data-action="compare" type="button">Compare</button>` : ''}
-                        <button class="city-action-btn" data-action="remove" type="button">Remove</button>
-                    </div>
-                `}
-            </div>
-            <div class="city-temp">
-                ${iconCode ? `<img src="${ICON_URL}/${iconCode}@2x.png" alt="${description}">` : ''}
-                ${tempValue}${currentUnit === 'K' ? 'K' : DEGREE}
-            </div>
-            <div class="city-card-metrics">
-                <div class="city-metric"><span>Feels like</span><strong>${feelsValue}</strong></div>
-                <div class="city-metric"><span>Wind</span><strong>${windValue}</strong></div>
-                <div class="city-metric"><span>Condition</span><strong>${description}</strong></div>
-                <div class="city-metric"><span>Updated</span><strong>${state.updatedAt ? new Date(state.updatedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '--'}</strong></div>
-            </div>
-            <div class="city-trend">
-                <span>24h trend</span>
-                <span>${trend ? trend.label : '--'}</span>
-            </div>
-            ${isLoading ? '<div class="city-status city-loading">Loading...</div>' : ''}
-            ${isError ? `<div class="city-status">${state.error || 'Unable to load city.'}</div>` : ''}
-        </article>
-    `;
-}
-
-function getSortedCities() {
-    const pinned = savedCities.filter((city) => city.pinned);
-    const others = savedCities.filter((city) => !city.pinned);
-    const sorter = getSortComparator(selectedSort);
-
-    pinned.sort(sorter);
-    others.sort(sorter);
-
-    return [...pinned, ...others];
-}
-
-function getSortComparator(sortKey) {
-    if (sortKey === 'alpha') {
-        return (a, b) => a.name.localeCompare(b.name);
-    }
-
-    if (sortKey === 'hottest' || sortKey === 'coldest') {
-        return (a, b) => {
-            const aState = getCityState(a.id);
-            const bState = getCityState(b.id);
-            const missingValue = sortKey === 'coldest' ? Infinity : -Infinity;
-            const aTemp = aState.current?.main?.temp ?? missingValue;
-            const bTemp = bState.current?.main?.temp ?? missingValue;
-            return sortKey === 'hottest' ? bTemp - aTemp : aTemp - bTemp;
-        };
-    }
-
-    if (sortKey === 'rain' || sortKey === 'alerts') {
-        return (a, b) => {
-            const aMetrics = getCityMetrics(getCityState(a.id));
-            const bMetrics = getCityMetrics(getCityState(b.id));
-            const aValue = sortKey === 'rain' ? aMetrics.rainRisk : aMetrics.alertScore;
-            const bValue = sortKey === 'rain' ? bMetrics.rainRisk : bMetrics.alertScore;
-            return bValue - aValue;
-        };
-    }
-
-    return (a, b) => (b.addedAt || 0) - (a.addedAt || 0);
-}
-
-function getCityMetrics(state) {
-    if (!state?.forecast?.list?.length) {
-        return { rainRisk: -1, alertScore: -1 };
-    }
-
-    const windowList = state.forecast.list.slice(0, 8);
-    const rainRisk = Math.max(...windowList.map((item) => item.pop ?? 0));
-    const alertScore = windowList.some((item) => ['Thunderstorm', 'Tornado', 'Snow', 'Rain'].includes(item.weather?.[0]?.main)) ? 1 : 0;
-
-    return { rainRisk, alertScore };
-}
-
-function buildTrendSummary(forecastList) {
-    const windowList = forecastList.slice(0, 8);
-    if (!windowList.length) return null;
-
-    const temps = windowList.map((item) => item.main.temp);
-    const first = temps[0];
-    const last = temps[temps.length - 1];
-    const delta = last - first;
-    const direction = delta > 1 ? 'up' : delta < -1 ? 'down' : 'flat';
-    const label = `${direction === 'up' ? '+' : direction === 'down' ? '' : ''}${Math.round(delta)}${DEGREE}`;
-
-    return { label, min: Math.min(...temps), max: Math.max(...temps) };
-}
-
-function refreshSavedCities() {
-    savedCities.forEach((city) => refreshCityData(city));
-}
-
-async function refreshCityData(city) {
-    const state = getCityState(city.id);
-    const cached = getCachedCityData(city.id);
-    const now = Date.now();
-
-    if (cached && now - cached.ts < CACHE_TTL_MS) {
-        state.status = 'ready';
-        state.current = cached.current;
-        state.forecast = cached.forecast;
-        state.updatedAt = cached.ts;
-        renderDashboard();
-        return;
-    }
-
-    state.status = 'loading';
-    state.error = null;
-    renderDashboard();
-
-    try {
-        const payload = await fetchCityPayload(city);
-        state.status = 'ready';
-        state.current = payload.current;
-        state.forecast = payload.forecast;
-        state.updatedAt = Date.now();
-        setCachedCityData(city.id, payload);
-    } catch (error) {
-        if (cached) {
-            state.status = 'ready';
-            state.current = cached.current;
-            state.forecast = cached.forecast;
-            state.updatedAt = cached.ts;
-        } else {
-            state.status = 'error';
-            state.error = 'Weather unavailable';
-        }
-    }
-
-    renderDashboard();
-}
-
-async function fetchCityPayload(city) {
-    const weatherUrl = `${API_BASE}/weather?lat=${city.lat}&lon=${city.lon}&units=standard`;
-    const forecastUrl = `${API_BASE}/forecast?lat=${city.lat}&lon=${city.lon}&units=standard`;
-
-    const [currentResponse, forecastResponse] = await Promise.all([
-        fetchWithRetry(weatherUrl, 1),
-        fetchWithRetry(forecastUrl, 1)
-    ]);
-
-    if (!currentResponse.ok || !forecastResponse.ok) {
-        throw new Error('City request failed');
-    }
-
-    const current = await currentResponse.json();
-    const forecast = await forecastResponse.json();
-
-    if (!current?.name || !forecast?.list) {
-        throw new Error('City payload incomplete');
-    }
-
-    return { current, forecast };
-}
-
-async function fetchWithRetry(url, retries) {
-    try {
-        const response = await fetch(url);
-        if (!response.ok) throw new Error('Request failed');
-        return response;
-    } catch (error) {
-        if (retries <= 0) throw error;
-        await new Promise((resolve) => setTimeout(resolve, 500));
-        return fetchWithRetry(url, retries - 1);
-    }
-}
-
-function getCachedCityData(cityId) {
-    try {
-        const stored = localStorage.getItem(STORAGE_KEYS.cache);
-        const parsed = stored ? JSON.parse(stored) : {};
-        return parsed[cityId] || null;
-    } catch {
-        return null;
-    }
-}
-
-function setCachedCityData(cityId, payload) {
-    try {
-        const stored = localStorage.getItem(STORAGE_KEYS.cache);
-        const parsed = stored ? JSON.parse(stored) : {};
-        parsed[cityId] = { ts: Date.now(), current: payload.current, forecast: payload.forecast };
-        localStorage.setItem(STORAGE_KEYS.cache, JSON.stringify(parsed));
-    } catch {
-        // ignore cache write errors
-    }
-}
-
-function syncSaveButton() {
-    if (!saveCityBtn || !rawData.current) return;
-    const city = buildCityFromCurrent(rawData.current);
-    const exists = savedCities.some((item) => item.id === city.id);
-    saveCityBtn.textContent = exists ? 'Saved' : 'Save current';
-    saveCityBtn.disabled = exists;
-}
-
 function showLoading() {
     loading.classList.remove('hidden');
 }
@@ -1271,10 +964,6 @@ function hideError() {
 
 setInterval(renderSunPosition, 60000);
 
-
-// ============================================================
-// ✅ ADDED: Dark Mode Toggle — Issue #14
-// ============================================================
 (function initDarkMode() {
     const STORAGE_KEY = 'weatherify-theme';
     const DARK_CLASS  = 'dark-mode';
@@ -1296,7 +985,6 @@ setInterval(renderSunPosition, 60000);
         return window.matchMedia('(prefers-color-scheme: dark)').matches;
     }
 
-    // Apply before first paint to prevent flash
     applyTheme(getInitialPreference());
 
     if (toggleBtn) {
@@ -1306,8 +994,6 @@ setInterval(renderSunPosition, 60000);
             localStorage.setItem(STORAGE_KEY, isDark ? 'dark' : 'light');
         });
     }
-
-    // Follow OS preference changes only if user hasn't manually chosen
     window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', (e) => {
         if (localStorage.getItem(STORAGE_KEY) === null) {
             applyTheme(e.matches);
