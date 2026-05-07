@@ -1,6 +1,5 @@
 {
   "version": 2,
-<<<<<<< HEAD
   "builds": [
     {
       "src": "server.js",
@@ -9,13 +8,8 @@
     {
       "src": "public/**",
       "use": "@vercel/static"
-=======
-  "functions": {
-    "server.js": {
-      "includeFiles": "public/**"
->>>>>>> a2b247548e37b90ca07338ec18cd05324278e12d
     }
-  },
+  ],
   "routes": [
     {
       "src": "/api/(.*)",
