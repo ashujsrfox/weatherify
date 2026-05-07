@@ -164,9 +164,10 @@ function displaySuggestions(cities) {
         suggestion.textContent = `${city.name}, ${city.state ? `${city.state}, ` : ''}${city.country}`;
 
         suggestion.addEventListener('click', () => {
-            cityInput.value = city.name;
+            cityInput.value = `${city.name}, ${city.country}`;
             hideSuggestions();
-            fetchWeatherData(city.name);
+            fetchWeatherByCoords(city.lat, city.lon);
+            saveToHistory(city.name);
         });
 
         suggestionsContainer.appendChild(suggestion);
@@ -177,6 +178,15 @@ function displaySuggestions(cities) {
 
 function hideSuggestions() {
     suggestionsContainer.classList.add('hidden');
+}
+
+// Search History
+function saveToHistory(city) {
+    let history = JSON.parse(localStorage.getItem('weatherify-history') || '[]');
+    history = history.filter(h => h.toLowerCase() !== city.toLowerCase());
+    history.unshift(city);
+    if (history.length > 5) history.pop();
+    localStorage.setItem('weatherify-history', JSON.stringify(history));
 }
 
 // Initialize with default city
@@ -193,6 +203,7 @@ function handleSearch() {
     const city = cityInput.value.trim();
     if (city) {
         fetchWeatherData(city);
+        saveToHistory(city);
     }
 }
 function detectUserLocation() {
@@ -212,15 +223,33 @@ function detectUserLocation() {
     );
 }
 
+function showLoading() {
+    loading.classList.remove('hidden');
+    weatherContainer.classList.add('hidden');
+}
+
+function hideLoading() {
+    loading.classList.add('hidden');
+    weatherContainer.classList.remove('hidden');
+}
+
+function showError(message) {
+    errorMessage.textContent = message;
+    errorMessage.classList.remove('hidden');
+}
+
+function hideError() {
+    errorMessage.classList.add('hidden');
+}
+
 async function fetchWeatherByCoords(lat, lon) {
     showLoading();
     hideError();
-    // hideWeather();
 
     try {
         const [currentResponse, forecastResponse] = await Promise.all([
-            fetch(`${API_BASE}/weather?lat=${lat}&lon=${lon}&units=metric`),
-            fetch(`${API_BASE}/forecast?lat=${lat}&lon=${lon}&units=metric`)
+            fetch(`${API_BASE}/weather?lat=${lat}&lon=${lon}&units=standard`),
+            fetch(`${API_BASE}/forecast?lat=${lat}&lon=${lon}&units=standard`)
         ]);
 
         if (!currentResponse.ok || !forecastResponse.ok) {
