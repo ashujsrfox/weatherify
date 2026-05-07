@@ -75,6 +75,138 @@ let sunTimeline = null;
 let dailyTrendData = [];
 let selectedTrendMetric = 'avg';
 
+// Best Time elements
+const bestTimeSlot = document.getElementById('best-time-result')?.querySelector('.best-time-slot');
+const bestTimeReason = document.getElementById('best-time-reason');
+const bestTimeDetails = document.getElementById('best-time-details');
+const bestTemp = document.getElementById('best-temp');
+const bestRain = document.getElementById('best-rain');
+const bestWind = document.getElementById('best-wind');
+const bestScore = document.getElementById('best-score');
+
+function calculateBestTimeToGoOutside(forecastData) {
+    if (!forecastData || !forecastData.list || forecastData.list.length === 0) {
+        return null;
+    }
+
+    const intervals = [];
+    const now = Math.floor(Date.now() / 1000);
+    
+    const todayForecasts = forecastData.list.filter(item => {
+        const itemTime = item.dt;
+        return itemTime >= now && itemTime <= now + 86400;
+    });
+
+    if (todayForecasts.length === 0) return null;
+
+    const scoredIntervals = todayForecasts.map(interval => {
+        const tempCelsius = interval.main.temp - 273.15;
+        const rainProb = interval.pop || 0; 
+        const windSpeedMs = interval.wind.speed;
+        const windSpeedKmh = windSpeedMs * 3.6;
+        
+        let tempScore = 0;
+        if (tempCelsius >= 18 && tempCelsius <= 25) {
+            tempScore = 100;
+        } else if (tempCelsius >= 15 && tempCelsius < 18) {
+            tempScore = 70;
+        } else if (tempCelsius > 25 && tempCelsius <= 30) {
+            tempScore = 60;
+        } else if (tempCelsius > 30 && tempCelsius <= 35) {
+            tempScore = 30;
+        } else if (tempCelsius < 10) {
+            tempScore = 20;
+        } else if (tempCelsius >= 10 && tempCelsius < 15) {
+            tempScore = 50;
+        } else {
+            tempScore = 40;
+        }
+        
+        // Rain score: lower rain probability is better
+        let rainScore = 100;
+        if (rainProb > 0.7) rainScore = 0;
+        else if (rainProb > 0.5) rainScore = 30;
+        else if (rainProb > 0.3) rainScore = 60;
+        else if (rainProb > 0.1) rainScore = 85;
+        
+        // Wind score: light wind is best
+        let windScore = 100;
+        if (windSpeedKmh > 40) windScore = 0;
+        else if (windSpeedKmh > 30) windScore = 30;
+        else if (windSpeedKmh > 20) windScore = 60;
+        else if (windSpeedKmh > 15) windScore = 80;
+        
+        const totalScore = (tempScore * 0.5) + (rainScore * 0.3) + (windScore * 0.2);
+        
+        const date = new Date(interval.dt * 1000);
+        const startHour = date.getHours();
+        const endHour = startHour + 3;
+        const timeRange = `${startHour}${endHour <= 12 ? ' AM' : ' PM'}`.replace('0', '12').replace('24', '12');
+        const formattedRange = `${startHour % 12 || 12}–${endHour % 12 || 12} ${startHour < 12 ? 'AM' : 'PM'}`;
+        
+        return {
+            startHour,
+            endHour,
+            timeRange: formattedRange,
+            temp: Math.round(tempCelsius),
+            rainProb: Math.round(rainProb * 100),
+            windSpeed: Math.round(windSpeedKmh),
+            score: Math.round(totalScore),
+            rawTemp: tempCelsius,
+            rawRain: rainProb,
+            rawWind: windSpeedKmh,
+            tempScore,
+            rainScore,
+            windScore
+        };
+    });
+    
+    scoredIntervals.sort((a, b) => b.score - a.score);
+    return scoredIntervals[0];
+}
+
+function updateBestTimeUI(bestTime) {
+    if (!bestTimeSlot || !bestTimeReason) return;
+    
+    if (!bestTime || bestTime.score < 30) {
+        bestTimeSlot.textContent = "Not Ideal Today";
+        bestTimeReason.textContent = "Weather conditions aren't favorable for outdoor activities today.";
+        bestTimeDetails?.classList.add('hidden');
+        return;
+    }
+    
+    bestTimeSlot.textContent = bestTime.timeRange;
+    
+    let reason = "";
+    if (bestTime.score >= 80) {
+        reason = "Perfect conditions! 🌟";
+    } else if (bestTime.score >= 65) {
+        reason = "Good time to go out 👍";
+    } else if (bestTime.score >= 50) {
+        reason = "Decent conditions, but check weather first";
+    } else {
+        reason = "Better than other times today";
+    }
+    
+    bestTimeReason.textContent = reason;
+    
+    if (bestTemp && bestRain && bestWind && bestScore && bestTimeDetails) {
+        bestTemp.textContent = `${bestTime.temp}°C`;
+        bestRain.textContent = `${bestTime.rainProb}%`;
+        bestWind.textContent = `${bestTime.windSpeed} km/h`;
+        bestScore.textContent = `${bestTime.score}/100`;
+        bestTimeDetails.classList.remove('hidden');
+        
+        if (bestTime.score >= 70) {
+            bestScore.style.color = '#10b981';
+        } else if (bestTime.score >= 50) {
+            bestScore.style.color = '#f59e0b';
+        } else {
+            bestScore.style.color = '#ef4444';
+        }
+    }
+}
+
 // Unit toggle
 document.querySelectorAll('.unit-btn').forEach(btn => {
     btn.addEventListener('click', () => {
@@ -380,6 +512,9 @@ function updateForecastUI(forecastData) {
     updateForecastSummary(chartData);
     renderForecastGraph(chartData);
     updateWeatherTrends(dailyTrendData);
+    
+    const bestTime = calculateBestTimeToGoOutside(forecastData);
+    updateBestTimeUI(bestTime);
 }
 
 function updateForecastSummary(chartData) {
@@ -829,10 +964,6 @@ function hideError() {
 
 setInterval(renderSunPosition, 60000);
 
-
-// ============================================================
-// ✅ ADDED: Dark Mode Toggle — Issue #14
-// ============================================================
 (function initDarkMode() {
     const STORAGE_KEY = 'weatherify-theme';
     const DARK_CLASS  = 'dark-mode';
@@ -854,7 +985,6 @@ setInterval(renderSunPosition, 60000);
         return window.matchMedia('(prefers-color-scheme: dark)').matches;
     }
 
-    // Apply before first paint to prevent flash
     applyTheme(getInitialPreference());
 
     if (toggleBtn) {
@@ -864,8 +994,6 @@ setInterval(renderSunPosition, 60000);
             localStorage.setItem(STORAGE_KEY, isDark ? 'dark' : 'light');
         });
     }
-
-    // Follow OS preference changes only if user hasn't manually chosen
     window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', (e) => {
         if (localStorage.getItem(STORAGE_KEY) === null) {
             applyTheme(e.matches);

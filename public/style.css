@@ -1586,3 +1586,143 @@ body.dark-mode .loading p {
     box-shadow: none;
     background: #cbd5e0;
 }
+
+.best-time-card {
+    background: linear-gradient(135deg, #e8f5e9 0%, #c8e6c9 100%);
+    border-radius: 18px;
+    padding: 18px 20px;
+    margin-top: 12px;
+    transition: all 0.3s ease;
+    border: 2px solid rgba(76, 175, 80, 0.3);
+    animation: slideInLeft 0.6s ease-out 0.25s both;
+    cursor: pointer;
+}
+
+.best-time-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 12px 30px rgba(76, 175, 80, 0.2);
+    border-color: #4caf50;
+}
+
+.best-time-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 14px;
+}
+
+.best-time-icon {
+    font-size: 28px;
+    animation: bounce 2s ease-in-out infinite;
+}
+
+.best-time-header h3 {
+    font-size: 16px;
+    font-weight: 700;
+    color: #2e7d32;
+    margin: 0;
+    letter-spacing: 0.5px;
+}
+
+.best-time-result {
+    text-align: center;
+    margin-bottom: 12px;
+}
+
+.best-time-slot {
+    font-size: 32px;
+    font-weight: 800;
+    color: #1b5e20;
+    background: rgba(76, 175, 80, 0.15);
+    display: inline-block;
+    padding: 8px 24px;
+    border-radius: 50px;
+    margin-bottom: 10px;
+    letter-spacing: 1px;
+}
+
+.best-time-reason {
+    font-size: 13px;
+    color: #388e3c;
+    font-weight: 500;
+}
+
+.best-time-details {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+    margin-top: 15px;
+    padding-top: 12px;
+    border-top: 1px solid rgba(76, 175, 80, 0.3);
+}
+
+.best-time-metric {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 5px;
+    font-size: 12px;
+}
+
+.best-time-metric span:first-child {
+    color: #2e7d32;
+    font-weight: 600;
+}
+
+.best-time-metric span:last-child {
+    font-weight: 700;
+    color: #1b5e20;
+    font-size: 14px;
+}
+
+/* Dark mode styles for best time card */
+body.dark-mode .best-time-card {
+    background: linear-gradient(135deg, #1b3a1f 0%, #0d2b12 100%);
+    border-color: rgba(76, 175, 80, 0.4);
+}
+
+body.dark-mode .best-time-header h3 {
+    color: #81c784;
+}
+
+body.dark-mode .best-time-slot {
+    background: rgba(76, 175, 80, 0.25);
+    color: #a5d6a7;
+}
+
+body.dark-mode .best-time-reason {
+    color: #81c784;
+}
+
+body.dark-mode .best-time-metric span:first-child {
+    color: #81c784;
+}
+
+body.dark-mode .best-time-metric span:last-child {
+    color: #a5d6a7;
+}
+
+body.dark-mode .best-time-details {
+    border-top-color: rgba(76, 175, 80, 0.3);
+}
+
+/* Responsive */
+@media screen and (max-width: 600px) {
+    .best-time-slot {
+        font-size: 24px;
+        padding: 6px 18px;
+    }
+    
+    .best-time-details {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 10px;
+    }
+    
+    .best-time-header h3 {
+        font-size: 14px;
+    }
+    
+    .best-time-icon {
+        font-size: 24px;
+    }
+}
