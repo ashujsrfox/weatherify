@@ -200,6 +200,40 @@
                 </section>
             </main>
 
+            <section class="dashboard" id="dashboard" aria-label="Saved cities dashboard">
+                <div class="dashboard-header">
+                    <div>
+                        <h2>Saved Cities</h2>
+                        <p id="dashboard-subtitle">Save up to 20 locations for quick switching and comparison.</p>
+                    </div>
+                    <div class="dashboard-controls">
+                        <button id="save-city-btn" class="dashboard-btn" type="button" disabled>Save current</button>
+                        <button id="compare-toggle-btn" class="dashboard-btn" type="button" aria-pressed="false">Compare</button>
+                        <label class="dashboard-sort" for="city-sort">
+                            Sort
+                            <select id="city-sort">
+                                <option value="pinned">Pinned first</option>
+                                <option value="hottest">Hottest</option>
+                                <option value="coldest">Coldest</option>
+                                <option value="rain">Rain risk</option>
+                                <option value="alerts">Alerts</option>
+                                <option value="alpha">A-Z</option>
+                            </select>
+                        </label>
+                    </div>
+                </div>
+
+                <div id="compare-panel" class="compare-panel hidden" aria-live="polite">
+                    <div class="compare-header">
+                        <strong>Compare mode</strong>
+                        <span id="compare-count">Select 2-4 cities</span>
+                    </div>
+                    <div id="compare-cards" class="compare-cards"></div>
+                </div>
+
+                <div id="city-cards" class="city-cards"></div>
+            </section>
+
             <div id="loading" class="loading hidden">
                 <div class="spinner"></div>
                 <p>Loading weather data...</p>
