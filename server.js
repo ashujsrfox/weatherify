@@ -71,9 +71,13 @@ app.get('/api/geo', (req, res) => proxyOpenWeather('/geo/1.0/direct', req, res))
 
 app.use(express.static(path.join(__dirname, 'public')));
 
-app.listen(PORT, () => {
-    console.log(`Weatherify: http://localhost:${PORT}`);
-    if (!OPENWEATHER_API_KEY) {
-        console.warn('Set OPENWEATHER_API_KEY in .env (see .env.example).');
-    }
-});
+if (process.env.VERCEL !== '1') {
+    app.listen(PORT, () => {
+        console.log(`Weatherify: http://localhost:${PORT}`);
+        if (!OPENWEATHER_API_KEY) {
+            console.warn('Set OPENWEATHER_API_KEY in .env (see .env.example).');
+        }
+    });
+}
+
+module.exports = app;
