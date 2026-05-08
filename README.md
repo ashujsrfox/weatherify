@@ -15,7 +15,7 @@ REQUEST- The project requires refinement and there are several features that can
 
 ## Live Demo
 
-[View the live demo here]([https://ashujsrfox.github.io/weatherify/](https://weatherify-silk.vercel.app/))
+View the live demo here: [(https://weatherify-silk.vercel.app/)](https://weatherify-silk.vercel.app/))
 
 **Note:** GitHub Pages serves static files only. The app expects a small local (or hosted) Node server that proxies OpenWeatherMap so the API key stays on the server. For the public Pages demo to keep working, maintainers need either a deployed proxy (for example Cloudflare Worker, Vercel serverless, or this `server.js` on a host) or a separate demo URL that runs behind that proxy.
 
@@ -116,4 +116,4 @@ weatherify/
 ## License
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
-Project Link: (https://weatherify-silk.vercel.app/)
+Project Link: [(https://weatherify-silk.vercel.app/)](https://weatherify-silk.vercel.app/)
