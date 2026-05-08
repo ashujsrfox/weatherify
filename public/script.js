@@ -2,13 +2,23 @@
 const API_BASE = '/api';
 const ICON_URL = 'https://openweathermap.org/img/wn';
 const DEGREE = '\u00B0';
-const unitElement = document.querySelector('.unit');
-
-
-unitElement.textContent = unitLabel();
 
 let currentUnit = 'C';
 let rawData = { current: null, forecast: null };
+
+// Initialize unit display after DOM is ready
+function initUnitDisplay() {
+    const unitElement = document.querySelector('.unit');
+    if (unitElement) {
+        unitElement.textContent = unitLabel();
+    }
+}
+
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initUnitDisplay);
+} else {
+    initUnitDisplay();
+}
 
 function toUnit(kelvin) {
     if (currentUnit === 'C') return `${Math.round(kelvin - 273.15)}${DEGREE}C`;
