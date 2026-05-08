@@ -249,7 +249,7 @@ async function fetchWeatherByCoords(lat, lon) {
         localStorage.setItem('weatherify-last-data', JSON.stringify(rawData));
         updateUI(currentData);
         updateForecastUI(forecastData);
-        // showWeather();
+        showWeather();
     } catch (error) {
         if (!navigator.onLine) {
             const cachedData = localStorage.getItem('weatherify-last-data');
@@ -257,7 +257,7 @@ async function fetchWeatherByCoords(lat, lon) {
                 rawData = JSON.parse(cachedData);
                 updateUI(rawData.current);
                 updateForecastUI(rawData.forecast);
-                // showWeather();
+                showWeather();
                 showError('You are offline. Showing last known weather data.');
                 hideLoading();
                 return;
@@ -300,7 +300,7 @@ async function fetchWeatherData(city) {
         localStorage.setItem('weatherify-last-data', JSON.stringify(rawData));
         updateUI(currentData);
         updateForecastUI(forecastData);
-        // showWeather();
+        showWeather();
     } catch (error) {
         console.error('Fetch error:', error);
         if (!navigator.onLine) {
@@ -309,7 +309,7 @@ async function fetchWeatherData(city) {
                 rawData = JSON.parse(cachedData);
                 updateUI(rawData.current);
                 updateForecastUI(rawData.forecast);
-                // showWeather();
+                showWeather();
                 showError('You are offline. Showing last known weather data.');
                 hideLoading();
                 return;
