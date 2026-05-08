@@ -2,6 +2,7 @@
 const API_BASE = '/api';
 const ICON_URL = 'https://openweathermap.org/img/wn';
 const DEGREE = '\u00B0';
+const DEFAULT_CITY = 'London';
 
 let currentUnit = 'C';
 let rawData = { current: null, forecast: null };
@@ -196,7 +197,7 @@ window.addEventListener('DOMContentLoaded', () => {
             console.error('Service Worker registration failed:', err);
         });
     }
-    detectUserLocation();
+    fetchWeatherData(DEFAULT_CITY);
 });
 
 function handleSearch() {
@@ -207,7 +208,7 @@ function handleSearch() {
 }
 function detectUserLocation() {
     if (!navigator.geolocation) {
-        fetchWeatherData('London');
+        fetchWeatherData(DEFAULT_CITY);
         return;
     }
 
@@ -217,7 +218,7 @@ function detectUserLocation() {
             fetchWeatherByCoords(latitude, longitude);
         },
         () => {
-            fetchWeatherData('London');
+            fetchWeatherData(DEFAULT_CITY);
         }
     );
 }
@@ -263,7 +264,7 @@ async function fetchWeatherByCoords(lat, lon) {
                 return;
             }
         }
-        fetchWeatherData('London');
+        fetchWeatherData(DEFAULT_CITY);
     } finally {
         hideLoading();
     }
