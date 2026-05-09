@@ -335,7 +335,8 @@ function updateUI(data) {
 
     feelsLike.textContent = toUnit(data.main.feels_like);
     humidity.textContent = `${data.main.humidity}%`;
-    windSpeed.textContent = `${Math.round(data.wind.speed * 3.6)} km/h`;
+    const windDir = getWindDirection(data.wind.deg);
+    windSpeed.textContent = `${Math.round(data.wind.speed * 3.6)} km/h ${windDir}`;
     pressure.textContent = `${data.main.pressure} hPa`;
     visibility.textContent = `${(data.visibility / 1000).toFixed(1)} km`;
 
@@ -814,7 +815,13 @@ function renderForecastGraph(chartData) {
         ${labels}
     `;
 }
-
+function getWindDirection(deg) {
+    if (deg === undefined || deg === null) return '';
+    const directions = ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'];
+    const index = Math.round(deg / 45) % 8;
+    const arrows = ['↑', '↗', '→', '↘', '↓', '↙', '←', '↖'];
+    return `${directions[index]} ${arrows[index]}`;
+}
 function showLoading() {
     loading.classList.remove('hidden');
 }
