@@ -334,6 +334,8 @@ function updateUI(data) {
     weatherIcon.innerHTML = `<img src="${ICON_URL}/${iconCode}@4x.png" alt="${data.weather[0].description}">`;
 
     feelsLike.textContent = toUnit(data.main.feels_like);
+    const feelsLikeMain = document.getElementById('feels-like-main');
+    if (feelsLikeMain) feelsLikeMain.textContent = `Feels like ${toUnit(data.main.feels_like)}`;
     humidity.textContent = `${data.main.humidity}%`;
     const windDir = getWindDirection(data.wind.deg);
     windSpeed.textContent = `${Math.round(data.wind.speed * 3.6)} km/h ${windDir}`;

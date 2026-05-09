@@ -1610,3 +1610,15 @@ body.dark-mode .loading p {
 @keyframes spin {
     100% { transform: rotate(360deg); }
 }
+
+.feels-like-main {
+    font-size: 14px;
+    color: #94a3b8;
+    font-weight: 500;
+    transition: color 0.4s ease;
+}
+
+body.dark-mode .feels-like-main {
+    color: #94a3b8;
+}
+
