@@ -177,9 +177,16 @@ h1 {
     flex-shrink: 0;
 }
 
-#city-input {
+.search-input-wrap {
     flex: 1;
-    padding: 14px 20px;
+    position: relative;
+    min-width: 0;
+}
+
+#city-input {
+    width: 100%;
+    box-sizing: border-box;
+    padding: 14px 40px 14px 20px;
     border: 2px solid #e2e8f0;
     border-radius: 14px;
     font-size: 16px;
@@ -198,6 +205,37 @@ h1 {
 
 #city-input::placeholder {
     color: #cbd5e0;
+}
+
+.clear-btn {
+    position: absolute;
+    top: 50%;
+    right: 10px;
+    transform: translateY(-50%);
+    width: 32px;
+    height: 32px;
+    padding: 0;
+    border: none;
+    border-radius: 10px;
+    background: transparent;
+    color: #64748b;
+    font-size: 22px;
+    line-height: 1;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: color 0.2s ease, background 0.2s ease;
+}
+
+.clear-btn:hover {
+    color: #475569;
+    background: rgba(100, 116, 139, 0.12);
+}
+
+.clear-btn:focus-visible {
+    outline: 2px solid #667eea;
+    outline-offset: 2px;
 }
 
 #search-btn {
@@ -229,7 +267,7 @@ h1 {
     position: absolute;
     top: calc(100% + 12px);
     left: 0;
-    right: 70px;
+    right: 0;
     background: white;
     border-radius: 14px;
     box-shadow: 0 15px 50px rgba(0, 0, 0, 0.2);
@@ -1154,11 +1192,19 @@ h1 {
         gap: 10px;
     }
 
+    .search-input-wrap {
+        width: 100%;
+    }
+
     #city-input,
     #search-btn {
         width: 100%;
         padding: 12px;
         font-size: 15px;
+    }
+
+    #city-input {
+        padding-right: 40px;
     }
 
     #weather-container {
@@ -1477,6 +1523,15 @@ body.dark-mode #city-input::placeholder {
 body.dark-mode #city-input:focus {
     background: rgba(30, 41, 59, 1);
     border-color: #667eea;
+}
+
+body.dark-mode .clear-btn {
+    color: #94a3b8;
+}
+
+body.dark-mode .clear-btn:hover {
+    color: #e2e8f0;
+    background: rgba(148, 163, 184, 0.15);
 }
 
 body.dark-mode .suggestions-container {

@@ -1,4 +1,5 @@
-const CACHE_NAME = 'weatherify-v1';
+const CACHE_VERSION = '2'; // Increment this version on new releases to bust the cache
+const CACHE_NAME = `weatherify-v${CACHE_VERSION}`;
 const ASSETS_TO_CACHE = [
   '/',
   '/index.html',
