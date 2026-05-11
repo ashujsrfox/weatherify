@@ -49,6 +49,7 @@ async function parseJsonSafe(response) {
 
 // DOM Elements
 const cityInput = document.getElementById('city-input');
+const clearBtn = document.getElementById('clear-btn');
 const searchBtn = document.getElementById('search-btn');
 const weatherContainer = document.getElementById('weather-container');
 const loading = document.getElementById('loading');
@@ -117,6 +118,7 @@ let debounceTimer;
 cityInput.addEventListener('input', (e) => {
     hideError();
     const query = e.target.value.trim();
+    clearBtn.classList.toggle('hidden', cityInput.value === '');
     searchBtn.disabled = query.length === 0;
 
     clearTimeout(debounceTimer);
@@ -127,6 +129,14 @@ cityInput.addEventListener('input', (e) => {
     }
 
     debounceTimer = setTimeout(() => fetchCitySuggestions(query), 300);
+});
+
+clearBtn.addEventListener('click', () => {
+    cityInput.value = '';
+    clearBtn.classList.add('hidden');
+    cityInput.focus();
+    // if you disable search-btn when empty, re-disable it here:
+    searchBtn.disabled = true;
 });
 
 // Hide suggestions when clicking outside
