@@ -49,6 +49,7 @@ async function parseJsonSafe(response) {
 
 // DOM Elements
 const cityInput = document.getElementById('city-input');
+const clearBtn = document.getElementById('clear-btn');
 const searchBtn = document.getElementById('search-btn');
 const weatherContainer = document.getElementById('weather-container');
 const loading = document.getElementById('loading');
@@ -118,6 +119,7 @@ cityInput.addEventListener('input', (e) => {
     hideError();
     const query = e.target.value.trim();
     searchBtn.disabled = query.length === 0;
+    clearBtn.classList.toggle('hidden', cityInput.value.length === 0);
 
     clearTimeout(debounceTimer);
 
@@ -127,6 +129,14 @@ cityInput.addEventListener('input', (e) => {
     }
 
     debounceTimer = setTimeout(() => fetchCitySuggestions(query), 300);
+});
+
+clearBtn.addEventListener('click', (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    cityInput.value = '';
+    cityInput.dispatchEvent(new Event('input', { bubbles: true }));
+    cityInput.focus();
 });
 
 // Hide suggestions when clicking outside
@@ -176,6 +186,7 @@ function displaySuggestions(cities) {
 
         suggestion.addEventListener('click', () => {
             cityInput.value = city.name;
+            clearBtn.classList.remove('hidden');
             hideSuggestions();
             fetchWeatherData(city.name);
         });
