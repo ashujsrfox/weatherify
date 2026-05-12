@@ -2,7 +2,7 @@
 const API_BASE = '/api';
 const ICON_URL = 'https://openweathermap.org/img/wn';
 const DEGREE = '\u00B0';
-const DEFAULT_CITY = 'London';
+const DEFAULT_CITY = 'New Delhi';
 
 let currentUnit = 'C';
 let rawData = { current: null, forecast: null };
