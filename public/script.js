@@ -2,11 +2,7 @@
 const API_BASE = '/api';
 const ICON_URL = 'https://openweathermap.org/img/wn';
 const DEGREE = '\u00B0';
-
-// No hardcoded default city on startup.
-// If geolocation is denied/unavailable, the UI stays in an empty state
-// (search remains available).
-const DEFAULT_CITY = null;
+const DEFAULT_CITY = 'London';
 
 let currentUnit = 'C';
 let rawData = { current: null, forecast: null };
@@ -205,57 +201,15 @@ function hideSuggestions() {
     suggestionsContainer.classList.add('hidden');
 }
 
-// Initialize on app startup: request user location, otherwise keep UI empty for manual search.
+// Initialize with default city
 window.addEventListener('DOMContentLoaded', () => {
     if ('serviceWorker' in navigator) {
         navigator.serviceWorker.register('/sw.js').catch((err) => {
             console.error('Service Worker registration failed:', err);
         });
     }
-
-    // Existing loading UI while we attempt geolocation + weather.
-    showLoading();
-    hideError();
-
-    if ('geolocation' in navigator) {
-        navigator.geolocation.getCurrentPosition(
-            async (position) => {
-                try {
-                    const { latitude, longitude } = position.coords;
-                    await fetchWeatherByCoords(latitude, longitude);
-                } catch {
-                    // fetchWeatherByCoords handles its own errors, but keep this safe.
-                    showEmptyState();
-                }
-            },
-            () => {
-                // Permission denied / unavailable.
-                showEmptyState();
-            }
-        );
-    } else {
-        showEmptyState();
-    }
+    fetchWeatherData(DEFAULT_CITY);
 });
-
-function showEmptyState() {
-    // Keep the UI intact, but clear any previously loaded weather content.
-    hideLoading();
-    hideError();
-    hideWeather();
-
-    // Non-intrusive message for denied/failed geolocation.
-    if (errorMessage) {
-        errorMessage.classList.remove('hidden');
-        const p = errorMessage.querySelector('p');
-        if (p) p.textContent = 'Search for a city to view weather';
-    }
-
-    // Clear stale charts/cards if any.
-    if (forecastContainer) forecastContainer.innerHTML = '';
-
-    rawData = { current: null, forecast: null };
-}
 
 function handleSearch() {
     const city = cityInput.value.trim();
@@ -263,11 +217,9 @@ function handleSearch() {
         fetchWeatherData(city);
     }
 }
-// Legacy geolocation helper (kept for compatibility with any external calls).
-// Startup flow now handles geolocation directly.
 function detectUserLocation() {
     if (!navigator.geolocation) {
-        showEmptyState();
+        fetchWeatherData(DEFAULT_CITY);
         return;
     }
 
@@ -277,7 +229,7 @@ function detectUserLocation() {
             fetchWeatherByCoords(latitude, longitude);
         },
         () => {
-            showEmptyState();
+            fetchWeatherData(DEFAULT_CITY);
         }
     );
 }
@@ -323,7 +275,7 @@ async function fetchWeatherByCoords(lat, lon) {
                 return;
             }
         }
-        showEmptyState();
+        fetchWeatherData(DEFAULT_CITY);
     } finally {
         hideLoading();
     }
