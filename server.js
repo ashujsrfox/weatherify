@@ -13,6 +13,7 @@ const app = express();
  * Rate limiter — 100 requests per 15 minutes per IP.
  * Applied to all /api/ routes to protect the OpenWeatherMap API key
  * from exhaustion by malicious actors or rogue scripts.
+ * *****
  */
 const apiLimiter = rateLimit({
     windowMs: 15 * 60 * 1000, // 15 minutes

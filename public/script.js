@@ -100,6 +100,7 @@ function renderAqiUI(airPollution) {
 
     if (aqiPollutantsEl) {
         // Show the most common pollutant components when available
+        //
         const parts = [];
         const pm25 = pollutants.pm2_5;
         const pm10 = pollutants.pm10;
