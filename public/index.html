@@ -25,11 +25,11 @@
 
     <!-- Theme -->
     <meta name="theme-color" content="#0ea5e9" />
-    <link rel="manifest" href="/manifest.json">
     <link rel="stylesheet" href="style.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
 
@@ -235,20 +235,36 @@
                             <span id="graph-range">--</span>
                         </div>
                         <div class="graph-wrapper">
-                            <svg id="forecast-graph" viewBox="0 0 640 240" preserveAspectRatio="none" aria-label="Temperature forecast line graph">
-                                <!-- Forecast graph is rendered by JavaScript -->
-                            </svg>
+                            <canvas id="temperature-chart" width="640" height="240" aria-label="Temperature forecast chart"></canvas>
                         </div>
                     </div>
+
+                    <div class="forecast-graph-card" style="padding-top: 18px;">
+                        <div class="graph-header">
+                            <span>Humidity & Precip (Next 24 Hours)</span>
+                            <span id="humidity-precip-range">--</span>
+                        </div>
+
+                        <div class="hourly-toggle-row" role="group" aria-label="Hourly humidity and precipitation display">
+                            <button type="button" class="hourly-toggle active" data-hourly-metric="humidity">Humidity</button>
+                            <button type="button" class="hourly-toggle" data-hourly-metric="precip">Precip</button>
+                        </div>
+
+                        <div class="graph-wrapper" style="height: 220px;">
+                            <canvas id="humidity-precip-chart" width="640" height="220" aria-label="Humidity and precipitation forecast chart"></canvas>
+                        </div>
+                    </div>
+
                     <div>
-                    <h3 class="forecast-title">5-Day Forecast</h3>
+                    <h3 class="forecast-title">24-Hour Forecast</h3>
                     <p class="forecast-subtitle" id="forecast-summary">Upcoming weather trend will appear here.</p>
                     
                     <div class="forecast-container" id="forecast-container">
-                        <!-- Forecast cards will be inserted here -->
+                        <!-- Hourly forecast cards will be inserted here -->
                     </div>
                     </div>
                 </div>
+
 
                 <section class="weather-trends-section" aria-labelledby="weather-trends-title">
                     <div class="trends-header">
@@ -292,6 +308,6 @@
         </div>
     </div>
 
-    <script src="script.js"></script>
+    <script src="script.js?v=1"></script>
 </body>
 </html>
