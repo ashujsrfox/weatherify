@@ -2,11 +2,27 @@ require('dotenv').config();
 
 const express = require('express');
 const path = require('path');
+const rateLimit = require('express-rate-limit');
 
 const OPENWEATHER_API_KEY = process.env.OPENWEATHER_API_KEY;
-const PORT = Number(process.env.PORT) || 3000;
+const PORT = Number(process.env.PORT) || 5000;
 
 const app = express();
+
+/**
+ * Rate limiter — 100 requests per 15 minutes per IP.
+ * Applied to all /api/ routes to protect the OpenWeatherMap API key
+ * from exhaustion by malicious actors or rogue scripts.
+ */
+const apiLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    max: 100,                  // max requests per windowMs per IP
+    standardHeaders: true,     // return rate-limit info in RateLimit-* headers
+    legacyHeaders: false,      // disable X-RateLimit-* headers
+    message: { cod: 429, message: 'Too many requests, please try again later.' }
+});
+
+app.use('/api/', apiLimiter);
 
 /**
  * Forwards query string to OpenWeatherMap, injecting appid from env (never from client).
@@ -55,9 +71,13 @@ app.get('/api/geo', (req, res) => proxyOpenWeather('/geo/1.0/direct', req, res))
 
 app.use(express.static(path.join(__dirname, 'public')));
 
-app.listen(PORT, () => {
-    console.log(`Weatherify: http://localhost:${PORT}`);
-    if (!OPENWEATHER_API_KEY) {
-        console.warn('Set OPENWEATHER_API_KEY in .env (see .env.example).');
-    }
-});
+if (process.env.VERCEL !== '1') {
+    app.listen(PORT, () => {
+        console.log(`Weatherify: http://localhost:${PORT}`);
+        if (!OPENWEATHER_API_KEY) {
+            console.warn('Set OPENWEATHER_API_KEY in .env (see .env.example).');
+        }
+    });
+}
+
+module.exports = app;

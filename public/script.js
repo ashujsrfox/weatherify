@@ -2,13 +2,24 @@
 const API_BASE = '/api';
 const ICON_URL = 'https://openweathermap.org/img/wn';
 const DEGREE = '\u00B0';
-const unitElement = document.querySelector('.unit');
-
-
-unitElement.textContent = unitLabel();
+const DEFAULT_CITY = 'New Delhi';
 
 let currentUnit = 'C';
 let rawData = { current: null, forecast: null };
+
+// Initialize unit display after DOM is ready
+function initUnitDisplay() {
+    const unitElement = document.querySelector('.unit');
+    if (unitElement) {
+        unitElement.textContent = unitLabel();
+    }
+}
+
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initUnitDisplay);
+} else {
+    initUnitDisplay();
+}
 
 function toUnit(kelvin) {
     if (currentUnit === 'C') return `${Math.round(kelvin - 273.15)}${DEGREE}C`;
@@ -38,10 +49,13 @@ async function parseJsonSafe(response) {
 
 // DOM Elements
 const cityInput = document.getElementById('city-input');
+const clearBtn = document.getElementById('clear-btn');
 const searchBtn = document.getElementById('search-btn');
+const locationBtn = document.getElementById('location-btn');
 const weatherContainer = document.getElementById('weather-container');
 const loading = document.getElementById('loading');
 const errorMessage = document.getElementById('error-message');
+const noDataMessage = document.getElementById('no-data-message');
 
 // Create suggestions dropdown
 const suggestionsContainer = document.createElement('div');
@@ -106,12 +120,21 @@ cityInput.addEventListener('keypress', (e) => {
     }
 });
 
+if (locationBtn) {
+    locationBtn.addEventListener('click', () => {
+        hideSuggestions();
+        requestWeatherFromMyLocation();
+    });
+}
+
 // Autocomplete functionality
 let debounceTimer;
 cityInput.addEventListener('input', (e) => {
     hideError();
 
     const query = e.target.value.trim();
+    searchBtn.disabled = query.length === 0;
+    clearBtn.classList.toggle('hidden', cityInput.value.length === 0);
 
     clearTimeout(debounceTimer);
 
@@ -142,6 +165,14 @@ cityInput.addEventListener('input', (e) => {
     }
 
     debounceTimer = setTimeout(() => fetchCitySuggestions(query), 300);
+});
+
+clearBtn.addEventListener('click', (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    cityInput.value = '';
+    cityInput.dispatchEvent(new Event('input', { bubbles: true }));
+    cityInput.focus();
 });
 
 // Hide suggestions when clicking outside
@@ -191,6 +222,7 @@ function displaySuggestions(cities) {
 
         suggestion.addEventListener('click', () => {
             cityInput.value = city.name;
+            clearBtn.classList.remove('hidden');
             hideSuggestions();
             fetchWeatherData(city.name);
         });
@@ -212,7 +244,7 @@ window.addEventListener('DOMContentLoaded', () => {
             console.error('Service Worker registration failed:', err);
         });
     }
-    detectUserLocation();
+    showNoDataMessage();
 });
 
 function handleSearch() {
@@ -229,32 +261,85 @@ function handleSearch() {
 }
 
 function detectUserLocation() {
+function getLocationErrorMessage(error) {
+    if (!error) return 'Unable to get your location.';
+
+    // GeolocationPositionError.PERMISSION_DENIED = 1
+    if (error.code === 1) {
+        return 'Location permission denied. Please enable location access in your browser settings.';
+    }
+    // GeolocationPositionError.POSITION_UNAVAILABLE = 2
+    if (error.code === 2) {
+        return 'Your location is unavailable right now.';
+    }
+    // GeolocationPositionError.TIMEOUT = 3
+    if (error.code === 3) {
+        return 'Timed out while trying to get your location. Please try again.';
+    }
+
+    return 'Unable to get your location.';
+}
+
+async function requestWeatherFromMyLocation() {
+    if (locationBtn) locationBtn.disabled = true;
+
     if (!navigator.geolocation) {
-        fetchWeatherData('London');
+        hideLoading();
+        showError('Geolocation is not supported by your browser.');
+        if (locationBtn) locationBtn.disabled = false;
         return;
     }
+
+    // Ask for a position with a reasonable timeout for mobile UX.
+    showLoading();
+    hideError();
 
     navigator.geolocation.getCurrentPosition(
         (position) => {
             const { latitude, longitude } = position.coords;
             fetchWeatherByCoords(latitude, longitude);
         },
-        () => {
-            fetchWeatherData('London');
-        }
+        (error) => {
+            hideLoading();
+            showError(getLocationErrorMessage(error));
+
+            // If offline, try cached last-known data.
+            if (!navigator.onLine) {
+                const cachedData = localStorage.getItem('weatherify-last-data');
+                if (cachedData) {
+                    rawData = JSON.parse(cachedData);
+                    updateUI(rawData.current);
+                    updateForecastUI(rawData.forecast);
+                    showWeather();
+                    showError('You are offline. Showing last known weather data.');
+                }
+            }
+
+            if (locationBtn) locationBtn.disabled = false;
+        },
+        { enableHighAccuracy: true, timeout: 10000, maximumAge: 30000 }
     );
 }
 
+function detectUserLocation() {
+    // Backwards-compatible wrapper for any existing callers.
+    requestWeatherFromMyLocation();
+}
+
 async function fetchWeatherByCoords(lat, lon) {
+    // Button disabling is handled by requestWeatherFromMyLocation.
     showLoading();
     hideError();
     // hideWeather();
 
+    // Use the same units mode as the rest of the app (Kelvin -> handled by toUnit/toUnitNum)
+    // so temperature conversion stays consistent.
     try {
         const [currentResponse, forecastResponse] = await Promise.all([
-            fetch(`${API_BASE}/weather?lat=${lat}&lon=${lon}&units=metric`),
-            fetch(`${API_BASE}/forecast?lat=${lat}&lon=${lon}&units=metric`)
+            fetch(`${API_BASE}/weather?lat=${lat}&lon=${lon}&units=standard`),
+            fetch(`${API_BASE}/forecast?lat=${lat}&lon=${lon}&units=standard`)
         ]);
+
 
         if (!currentResponse.ok || !forecastResponse.ok) {
             throw new Error('Unable to fetch location weather');
@@ -272,7 +357,7 @@ async function fetchWeatherByCoords(lat, lon) {
         localStorage.setItem('weatherify-last-data', JSON.stringify(rawData));
         updateUI(currentData);
         updateForecastUI(forecastData);
-        // showWeather();
+        showWeather();
     } catch (error) {
         if (!navigator.onLine) {
             const cachedData = localStorage.getItem('weatherify-last-data');
@@ -280,15 +365,16 @@ async function fetchWeatherByCoords(lat, lon) {
                 rawData = JSON.parse(cachedData);
                 updateUI(rawData.current);
                 updateForecastUI(rawData.forecast);
-                // showWeather();
+                showWeather();
                 showError('You are offline. Showing last known weather data.');
                 hideLoading();
                 return;
             }
         }
-        fetchWeatherData('London');
+        fetchWeatherData(DEFAULT_CITY);
     } finally {
         hideLoading();
+        if (locationBtn) locationBtn.disabled = false;
     }
 }
 async function fetchWeatherData(city) {
@@ -323,7 +409,7 @@ async function fetchWeatherData(city) {
         localStorage.setItem('weatherify-last-data', JSON.stringify(rawData));
         updateUI(currentData);
         updateForecastUI(forecastData);
-        // showWeather();
+        showWeather();
     } catch (error) {
         console.error('Fetch error:', error);
         if (!navigator.onLine) {
@@ -332,7 +418,7 @@ async function fetchWeatherData(city) {
                 rawData = JSON.parse(cachedData);
                 updateUI(rawData.current);
                 updateForecastUI(rawData.forecast);
-                // showWeather();
+                showWeather();
                 showError('You are offline. Showing last known weather data.');
                 hideLoading();
                 return;
@@ -356,8 +442,11 @@ function updateUI(data) {
     weatherIcon.innerHTML = `<img src="${ICON_URL}/${iconCode}@4x.png" alt="${data.weather[0].description}">`;
 
     feelsLike.textContent = toUnit(data.main.feels_like);
+    const feelsLikeMain = document.getElementById('feels-like-main');
+    if (feelsLikeMain) feelsLikeMain.textContent = `Feels like ${toUnit(data.main.feels_like)}`;
     humidity.textContent = `${data.main.humidity}%`;
-    windSpeed.textContent = `${Math.round(data.wind.speed * 3.6)} km/h`;
+    const windDir = getWindDirection(data.wind.deg);
+    windSpeed.textContent = `${Math.round(data.wind.speed * 3.6)} km/h ${windDir}`;
     pressure.textContent = `${data.main.pressure} hPa`;
     visibility.textContent = `${(data.visibility / 1000).toFixed(1)} km`;
 
@@ -836,7 +925,13 @@ function renderForecastGraph(chartData) {
         ${labels}
     `;
 }
-
+function getWindDirection(deg) {
+    if (deg === undefined || deg === null) return '';
+    const directions = ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'];
+    const index = Math.round(deg / 45) % 8;
+    const arrows = ['↑', '↗', '→', '↘', '↓', '↙', '←', '↖'];
+    return `${directions[index]} ${arrows[index]}`;
+}
 function showLoading() {
     loading.classList.remove('hidden');
 }
@@ -862,6 +957,52 @@ function showError(message) {
 
 function hideError() {
     errorMessage.classList.add('hidden');
+}
+// ===== STATE MANAGEMENT & VISIBILITY FUNCTIONS =====
+function showWeather() {
+    weatherContainer.classList.remove('hidden');
+    if (noDataMessage) noDataMessage.classList.add('hidden');
+    loading.classList.add('hidden');
+}
+
+function hideWeather() {
+    weatherContainer.classList.add('hidden');
+    loading.classList.add('hidden');
+}
+
+function showNoDataMessage() {
+    weatherContainer.classList.add('hidden');
+    if (noDataMessage) noDataMessage.classList.remove('hidden');
+    loading.classList.add('hidden');
+}
+
+function showLoading() {
+    weatherContainer.classList.add('hidden');
+    if (noDataMessage) noDataMessage.classList.add('hidden');
+    loading.classList.remove('hidden');
+}
+
+function hideLoading() {
+    loading.classList.add('hidden');
+}
+
+// ===== GLOBAL UNIT UPDATE FUNCTION =====
+function updateAllTemperatureDisplays() {
+    // Update unit label globally
+    const unitElements = document.querySelectorAll('.unit');
+    unitElements.forEach(el => {
+        el.textContent = unitLabel();
+    });
+    
+    // Update all temperature-related elements if data exists
+    if (rawData.current) {
+        updateUI(rawData.current);
+    }
+    
+    // Update forecast display with new units
+    if (rawData.forecast) {
+        updateForecastUI(rawData.forecast);
+    }
 }
 
 setInterval(renderSunPosition, 60000);
@@ -909,3 +1050,10 @@ setInterval(renderSunPosition, 60000);
         }
     });
 })();
+
+
+
+
+
+
+

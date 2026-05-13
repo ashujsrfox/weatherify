@@ -3,8 +3,28 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="theme-color" content="#1e293b">
-    <title>Weather App</title>
+    <title>Weatherify - Real-Time Weather App</title>
+
+    <!-- Primary Meta Tags -->
+    <meta name="description" content="Get real-time weather updates for any city worldwide with Weatherify." />
+    <link rel="canonical" href="https://weatherify-silk.vercel.app/" />
+
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://weatherify-silk.vercel.app/" />
+    <meta property="og:title" content="Weatherify - Real-Time Weather App" />
+    <meta property="og:description" content="Get real-time weather updates for any city worldwide." />
+    <meta property="og:image" content="https://weatherify-silk.vercel.app/preview.png" />
+
+    <!-- Twitter -->
+    <meta property="twitter:card" content="summary_large_image" />
+    <meta property="twitter:url" content="https://weatherify-silk.vercel.app/" />
+    <meta property="twitter:title" content="Weatherify - Real-Time Weather App" />
+    <meta property="twitter:description" content="Get real-time weather updates for any city worldwide." />
+    <meta property="twitter:image" content="https://weatherify-silk.vercel.app/preview.png" />
+
+    <!-- Theme -->
+    <meta name="theme-color" content="#0ea5e9" />
     <link rel="manifest" href="/manifest.json">
     <link rel="stylesheet" href="style.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -27,18 +47,45 @@
                     <button class="unit-btn" data-unit="F">°F</button>
                     <button class="unit-btn" data-unit="K">K</button>
                 </div>
-                <div class="search-container" style="order: 2; flex-shrink: 0; display: flex; flex-direction: column; width: 100%; max-width: 500px;">
-                    <div class="search-box" style="width: 100%; max-width: none;">
-                        <input type="text" id="city-input" placeholder="Enter city name..." autocomplete="off">
-                        <button id="search-btn" disabled>
+                <div class="search-container">
+                    <div class="search-box" >
+                    <div class="search-box">
+                        <div class="search-input-wrap">
+                            <input type="text" id="city-input" placeholder="Enter city name..." autocomplete="off">
+                            <button type="button" id="clear-btn" class="clear-btn hidden" aria-label="Clear search">&times;</button>
+                        </div>
+                        <button id="search-btn" disabled aria-label="Search for city weather">
                             <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><path d="m21 21-4.3-4.3"></path></svg>
+                        </button>
+                        <button id="location-btn" type="button" class="location-btn" aria-label="Use my location for weather">
+                            <span class="location-icon" aria-hidden="true">📍</span>
+                            <span class="location-label" style="color: #21388d;">Use My Location</span>
                         </button>
                     </div>
                     <div id="error-message" class="hidden text-red-500 text-sm mt-2">
                         <p>City not found. Please check spelling and try again.</p>
                     </div>
                 </div>
+
+            <div id="no-data-message" class="no-data-message">
+                <h2>Welcome to Weatherify ⛅</h2>
+                <p>Search for a city to view its weather forecast</p>
+            </div>
+
+            <div id="loading" class="skeleton-loader hidden">
+                <div class="weather-main">
+                    <div class="temperature-section">
+                        <div class="location-info">
+                            <div class="skeleton-text" style="width: 150px; height: 24px; margin-bottom: 8px;"></div>
+                            <div class="skeleton-text" style="width: 100px; height: 16px;"></div>
+                        </div>
+                        <div class="skeleton-card" style="width: 100px; height: 100px; margin: 20px auto;"></div>
+                        <div class="skeleton-text" style="width: 80px; height: 32px; margin: 10px auto;"></div>
+                    </div>
+                </div>
+            </div>
             </header>
+
 
             <main id="weather-container" class="hidden">
                 <div class="weather-main">
@@ -53,6 +100,7 @@
                             <span class="unit">&deg;C</span>
                         </div>
                         <p id="weather-desc">Weather Description</p>
+                        <p id="feels-like-main" class="feels-like-main">Feels like --°C</p>
                     </div>
 
                 </div>
@@ -217,3 +265,6 @@
     <script src="script.js"></script>
 </body>
 </html>
+
+
+
