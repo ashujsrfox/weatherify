@@ -5,7 +5,7 @@ const path = require('path');
 const rateLimit = require('express-rate-limit');
 
 const OPENWEATHER_API_KEY = process.env.OPENWEATHER_API_KEY;
-const PORT = Number(process.env.PORT) || 3000;
+const PORT = Number(process.env.PORT) || 5000;
 
 const app = express();
 

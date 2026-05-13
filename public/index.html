@@ -49,9 +49,6 @@
                 </div>
                 <div class="search-container">
                     <div class="search-box">
-                        <input type="text" id="city-input" placeholder="Enter city name..." autocomplete="off">
-                <div class="search-container" style="order: 2; flex-shrink: 0; display: flex; flex-direction: column; width: 100%; max-width: 500px;">
-                    <div class="search-box" style="width: 100%; max-width: none;">
                         <div class="search-input-wrap">
                             <input type="text" id="city-input" placeholder="Enter city name..." autocomplete="off">
                             <button type="button" id="clear-btn" class="clear-btn hidden" aria-label="Clear search">&times;</button>
@@ -59,12 +56,17 @@
                         <button id="search-btn" disabled>
                             <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><path d="m21 21-4.3-4.3"></path></svg>
                         </button>
+                        <button id="location-btn" type="button" class="location-btn" aria-label="Use my location for weather">
+                            <span class="location-icon" aria-hidden="true">📍</span>
+                            <span class="location-label" style="color: #21388d;">Use My Location</span>
+                        </button>
                     </div>
                     <div id="error-message" class="hidden text-red-500 text-sm mt-2">
                         <p>City not found. Please check spelling and try again.</p>
                     </div>
                 </div>
             </header>
+
 
             <main id="weather-container" class="hidden">
                 <div class="weather-main">
