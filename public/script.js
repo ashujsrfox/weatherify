@@ -79,6 +79,11 @@ let sunTimeline = null;
 let dailyTrendData = [];
 let selectedTrendMetric = 'avg';
 
+function isValidCity(city) {
+    const cityRegex = /^[A-Za-z\s\-'.]{2,}$/;
+    return cityRegex.test(city.trim());
+}
+
 // Unit toggle
 document.querySelectorAll('.unit-btn').forEach(btn => {
     btn.addEventListener('click', () => {
@@ -95,7 +100,7 @@ document.querySelectorAll('.unit-btn').forEach(btn => {
 // Event Listeners
 searchBtn.addEventListener('click', handleSearch);
 cityInput.addEventListener('keypress', (e) => {
-    if (e.key === 'Enter') {
+    if (e.key === 'Enter' && !searchBtn.disabled) {
         hideSuggestions();
         handleSearch();
     }
@@ -105,10 +110,31 @@ cityInput.addEventListener('keypress', (e) => {
 let debounceTimer;
 cityInput.addEventListener('input', (e) => {
     hideError();
+
     const query = e.target.value.trim();
-    searchBtn.disabled = query.length === 0;
 
     clearTimeout(debounceTimer);
+
+    // Empty input
+    if (query.length === 0) {
+        searchBtn.disabled = true;
+        cityInput.classList.remove('input-error');
+        hideSuggestions();
+        return;
+    }
+
+    // Invalid city input
+    if (!isValidCity(query)) {
+        searchBtn.disabled = true;
+        cityInput.classList.add('input-error');
+        showError('Please enter a valid city name.');
+        hideSuggestions();
+        return;
+    }
+
+    // Valid input
+    cityInput.classList.remove('input-error');
+    searchBtn.disabled = false;
 
     if (query.length < 2) {
         hideSuggestions();
@@ -191,10 +217,17 @@ window.addEventListener('DOMContentLoaded', () => {
 
 function handleSearch() {
     const city = cityInput.value.trim();
-    if (city) {
-        fetchWeatherData(city);
+
+    if (!isValidCity(city)) {
+        cityInput.classList.add('input-error');
+        showError('Please enter a valid city name.');
+        return;
     }
+
+    cityInput.classList.remove('input-error');
+    fetchWeatherData(city);
 }
+
 function detectUserLocation() {
     if (!navigator.geolocation) {
         fetchWeatherData('London');
