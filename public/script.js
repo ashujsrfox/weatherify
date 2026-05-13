@@ -51,6 +51,7 @@ async function parseJsonSafe(response) {
 const cityInput = document.getElementById('city-input');
 const clearBtn = document.getElementById('clear-btn');
 const searchBtn = document.getElementById('search-btn');
+const locationBtn = document.getElementById('location-btn');
 const weatherContainer = document.getElementById('weather-container');
 const loading = document.getElementById('loading');
 const errorMessage = document.getElementById('error-message');
@@ -112,6 +113,13 @@ cityInput.addEventListener('keypress', (e) => {
         handleSearch();
     }
 });
+
+if (locationBtn) {
+    locationBtn.addEventListener('click', () => {
+        hideSuggestions();
+        requestWeatherFromMyLocation();
+    });
+}
 
 // Autocomplete functionality
 let debounceTimer;
@@ -217,33 +225,85 @@ function handleSearch() {
         fetchWeatherData(city);
     }
 }
-function detectUserLocation() {
+function getLocationErrorMessage(error) {
+    if (!error) return 'Unable to get your location.';
+
+    // GeolocationPositionError.PERMISSION_DENIED = 1
+    if (error.code === 1) {
+        return 'Location permission denied. Please enable location access in your browser settings.';
+    }
+    // GeolocationPositionError.POSITION_UNAVAILABLE = 2
+    if (error.code === 2) {
+        return 'Your location is unavailable right now.';
+    }
+    // GeolocationPositionError.TIMEOUT = 3
+    if (error.code === 3) {
+        return 'Timed out while trying to get your location. Please try again.';
+    }
+
+    return 'Unable to get your location.';
+}
+
+async function requestWeatherFromMyLocation() {
+    if (locationBtn) locationBtn.disabled = true;
+
     if (!navigator.geolocation) {
-        fetchWeatherData(DEFAULT_CITY);
+        hideLoading();
+        showError('Geolocation is not supported by your browser.');
+        if (locationBtn) locationBtn.disabled = false;
         return;
     }
+
+    // Ask for a position with a reasonable timeout for mobile UX.
+    showLoading();
+    hideError();
 
     navigator.geolocation.getCurrentPosition(
         (position) => {
             const { latitude, longitude } = position.coords;
             fetchWeatherByCoords(latitude, longitude);
         },
-        () => {
-            fetchWeatherData(DEFAULT_CITY);
-        }
+        (error) => {
+            hideLoading();
+            showError(getLocationErrorMessage(error));
+
+            // If offline, try cached last-known data.
+            if (!navigator.onLine) {
+                const cachedData = localStorage.getItem('weatherify-last-data');
+                if (cachedData) {
+                    rawData = JSON.parse(cachedData);
+                    updateUI(rawData.current);
+                    updateForecastUI(rawData.forecast);
+                    showWeather();
+                    showError('You are offline. Showing last known weather data.');
+                }
+            }
+
+            if (locationBtn) locationBtn.disabled = false;
+        },
+        { enableHighAccuracy: true, timeout: 10000, maximumAge: 30000 }
     );
 }
 
+function detectUserLocation() {
+    // Backwards-compatible wrapper for any existing callers.
+    requestWeatherFromMyLocation();
+}
+
 async function fetchWeatherByCoords(lat, lon) {
+    // Button disabling is handled by requestWeatherFromMyLocation.
     showLoading();
     hideError();
     // hideWeather();
 
+    // Use the same units mode as the rest of the app (Kelvin -> handled by toUnit/toUnitNum)
+    // so temperature conversion stays consistent.
     try {
         const [currentResponse, forecastResponse] = await Promise.all([
-            fetch(`${API_BASE}/weather?lat=${lat}&lon=${lon}&units=metric`),
-            fetch(`${API_BASE}/forecast?lat=${lat}&lon=${lon}&units=metric`)
+            fetch(`${API_BASE}/weather?lat=${lat}&lon=${lon}&units=standard`),
+            fetch(`${API_BASE}/forecast?lat=${lat}&lon=${lon}&units=standard`)
         ]);
+
 
         if (!currentResponse.ok || !forecastResponse.ok) {
             throw new Error('Unable to fetch location weather');
@@ -278,6 +338,7 @@ async function fetchWeatherByCoords(lat, lon) {
         fetchWeatherData(DEFAULT_CITY);
     } finally {
         hideLoading();
+        if (locationBtn) locationBtn.disabled = false;
     }
 }
 async function fetchWeatherData(city) {

@@ -1187,6 +1187,7 @@ h1 {
         line-height: 1.1;
     }
 
+    /* Stack the search controls on mobile so nothing gets pushed off-screen */
     .search-box {
         flex-direction: column;
         gap: 10px;
@@ -1203,9 +1204,19 @@ h1 {
         font-size: 15px;
     }
 
+    /* Force the location button to full-width and keep it visible */
+    #location-btn.location-btn {
+        width: 100%;
+        justify-content: center;
+        padding: 12px;
+        flex-shrink: 0;
+        color:#d5d9e8;
+    }
+
     #city-input {
         padding-right: 40px;
     }
+
 
     #weather-container {
         gap: 18px;
@@ -1645,7 +1656,27 @@ body.dark-mode .theme-toggle:hover {
     background: rgba(30, 41, 59, 0.9);
 }
 
+body.dark-mode .location-btn {
+    color: #e2e8f0;
+    border-color: rgba(102, 126, 234, 0.45);
+    background: linear-gradient(135deg, rgba(102, 126, 234, 0.18) 0%, rgba(118, 75, 162, 0.18) 100%);
+    box-shadow: 0 4px 15px rgba(102, 126, 234, 0.18);
+}
+
+body.dark-mode .location-btn:hover {
+    border-color: rgba(102, 126, 234, 0.85);
+}
+
+body.dark-mode .location-label {
+    color: #e2e8f0;
+}
+
+body.dark-mode .location-icon {
+    color: #a5b4fc;
+}
+
 body.dark-mode .spinner {
+
     border-color: rgba(100, 116, 139, 0.3);
     border-top-color: #667eea;
 }
@@ -1690,6 +1721,68 @@ body.dark-mode .loading p {
     box-shadow: none;
     background: #cbd5e0;
 }
+
+/* Use My Location Button */
+.location-btn {
+    background: linear-gradient(135deg, rgba(102, 126, 234, 0.12) 0%, rgba(118, 75, 162, 0.12) 100%);
+    border: 1.5px solid rgba(102, 126, 234, 0.35);
+    border-radius: 14px;
+    padding: 14px 16px;
+    cursor: pointer;
+    color: #2d3748;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-weight: 700;
+    white-space: nowrap;
+    flex-shrink: 0;
+    box-shadow: 0 4px 15px rgba(102, 126, 234, 0.10);
+}
+
+.location-btn:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 10px 25px rgba(102, 126, 234, 0.25);
+    border-color: rgba(102, 126, 234, 0.65);
+}
+
+.location-btn:active {
+    transform: translateY(-1px);
+}
+
+.location-btn:focus-visible {
+    outline: 2px solid #667eea;
+    outline-offset: 2px;
+}
+
+.location-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
+}
+
+.location-icon {
+    font-size: 18px;
+    line-height: 1;
+}
+
+.location-label {
+    font-size: 14px;
+}
+
+@media screen and (max-width: 600px) {
+    .location-btn {
+        width: 100%;
+        justify-content: center;
+        padding: 12px;
+    }
+
+    .location-label {
+        font-size: 13px;
+    }
+}
+
 
 .loading {
     position: fixed;
