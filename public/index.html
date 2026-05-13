@@ -48,12 +48,13 @@
                     <button class="unit-btn" data-unit="K">K</button>
                 </div>
                 <div class="search-container">
+                    <div class="search-box" >
                     <div class="search-box">
                         <div class="search-input-wrap">
                             <input type="text" id="city-input" placeholder="Enter city name..." autocomplete="off">
                             <button type="button" id="clear-btn" class="clear-btn hidden" aria-label="Clear search">&times;</button>
                         </div>
-                        <button id="search-btn" disabled>
+                        <button id="search-btn" disabled aria-label="Search for city weather">
                             <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><path d="m21 21-4.3-4.3"></path></svg>
                         </button>
                         <button id="location-btn" type="button" class="location-btn" aria-label="Use my location for weather">
@@ -87,6 +88,24 @@
                         </div>
                     </div>
                 </div>
+
+            <div id="no-data-message" class="no-data-message">
+                <h2>Welcome to Weatherify ⛅</h2>
+                <p>Search for a city to view its weather forecast</p>
+            </div>
+
+            <div id="loading" class="skeleton-loader hidden">
+                <div class="weather-main">
+                    <div class="temperature-section">
+                        <div class="location-info">
+                            <div class="skeleton-text" style="width: 150px; height: 24px; margin-bottom: 8px;"></div>
+                            <div class="skeleton-text" style="width: 100px; height: 16px;"></div>
+                        </div>
+                        <div class="skeleton-card" style="width: 100px; height: 100px; margin: 20px auto;"></div>
+                        <div class="skeleton-text" style="width: 80px; height: 32px; margin: 10px auto;"></div>
+                    </div>
+                </div>
+            </div>
             </header>
 
 
@@ -294,3 +313,6 @@
     <script src="script.js"></script>
 </body>
 </html>
+
+
+
