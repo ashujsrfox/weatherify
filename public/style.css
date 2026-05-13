@@ -158,6 +158,7 @@ h1 {
     width: 100%;
     max-width: none;
     margin-left: 0;
+    position: relative;
 }
 
 .theme-toggle {
@@ -276,6 +277,167 @@ h1 {
     z-index: 1000;
     animation: slideDown 0.3s ease-out;
     transition: background 0.4s ease;
+}
+
+.history-dropdown {
+    position: static;
+    margin-top: 18px;
+    background: #eef2ff;
+    border: 1px solid #c7d2fe;
+    border-radius: 22px;
+    box-shadow: 0 24px 60px rgba(15, 23, 42, 0.12);
+    padding: 20px;
+    width: 100%;
+    overflow: hidden;
+    animation: none;
+}
+
+.history-dropdown.hidden {
+    display: none;
+}
+
+.history-panel-header {
+    margin-bottom: 16px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid rgba(99, 102, 241, 0.15);
+}
+
+.history-panel-header h2 {
+    margin: 0;
+    font-size: 1.2rem;
+    font-weight: 700;
+    color: #1e293b;
+}
+
+.history-panel-header p {
+    margin: 8px 0 0;
+    color: #475569;
+    font-size: 0.95rem;
+    line-height: 1.45;
+}
+
+.history-empty {
+    padding: 18px;
+    border-radius: 16px;
+    background: #f8fafc;
+    color: #475569;
+    border: 1px dashed #cbd5e0;
+    text-align: center;
+}
+
+.history-empty p {
+    font-weight: 600;
+    margin-bottom: 6px;
+}
+
+.history-empty small {
+    color: #64748b;
+}
+
+.history-actions {
+    display: flex;
+    justify-content: flex-end;
+    padding-top: 8px;
+}
+
+.history-toggle-btn {
+    border: none;
+    background: #eef2ff;
+    color: #4f46e5;
+    border-radius: 14px;
+    padding: 0 14px;
+    min-width: 48px;
+    height: 48px;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.2s ease, transform 0.2s ease;
+}
+
+.history-toggle-btn:hover {
+    background: #e0e7ff;
+    transform: translateY(-1px);
+}
+
+.history-dropdown-inner {
+    display: grid;
+    gap: 14px;
+}
+
+.history-section {
+    display: grid;
+    gap: 10px;
+}
+
+.history-section-title {
+    font-size: 0.9rem;
+    font-weight: 700;
+    color: #334155;
+}
+
+.history-list {
+    display: grid;
+    gap: 8px;
+    max-height: 160px;
+    overflow-y: auto;
+    padding-right: 4px;
+}
+
+.history-button {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 12px 14px;
+    border-radius: 14px;
+    border: 1px solid #e2e8f0;
+    background: #f8fafc;
+    color: #0f172a;
+    font-size: 0.95rem;
+    text-align: left;
+    cursor: pointer;
+    transition: background 0.2s ease, transform 0.2s ease;
+}
+
+.history-button:hover {
+    transform: translateX(2px);
+    background: #e2e8f0;
+}
+
+.history-badge {
+    font-size: 0.9rem;
+    color: #ca8a04;
+}
+
+.clear-history-btn {
+    width: fit-content;
+    border: 1px solid #cbd5e0;
+    background: #ffffff;
+    color: #475569;
+    border-radius: 12px;
+    padding: 10px 16px;
+    cursor: pointer;
+    transition: background 0.2s ease, color 0.2s ease;
+}
+
+.clear-history-btn:hover {
+    background: #f8fafc;
+}
+
+.favorite-btn {
+    border: none;
+    background: transparent;
+    color: #f59e0b;
+    font-size: 1.6rem;
+    line-height: 1;
+    cursor: pointer;
+    transition: transform 0.2s ease;
+}
+
+.favorite-btn:hover {
+    transform: scale(1.1);
 }
 
 .suggestion-item {
@@ -561,6 +723,57 @@ h1 {
     flex-direction: column;
     align-items: center;
     gap: 4px;
+    text-align: center;
+}
+
+.aqi-value {
+    font-size: 1.2rem;
+    font-weight: 800;
+    color: #1f2937;
+}
+
+.aqi-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 5px 12px;
+    border-radius: 999px;
+    color: #ffffff;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    white-space: nowrap;
+}
+
+.aqi-1 {
+    background: #16a34a;
+}
+
+.aqi-2 {
+    background: #fbbf24;
+    color: #1f2937;
+}
+
+.aqi-3 {
+    background: #f97316;
+}
+
+.aqi-4 {
+    background: #dc2626;
+}
+
+.aqi-5 {
+    background: #9333ea;
+}
+
+.aqi-pollutants,
+.aqi-recommendation {
+    display: block;
+    font-size: 12px;
+    line-height: 1.5;
+    color: #475569;
+    margin-top: 8px;
     text-align: center;
 }
 

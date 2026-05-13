@@ -5,9 +5,141 @@ const DEGREE = '\u00B0';
 const DEFAULT_CITY = 'New Delhi';
 
 let currentUnit = 'C';
-let rawData = { current: null, forecast: null };
+let rawData = { current: null, forecast: null, airQuality: null };
 
-// Initialize unit display after DOM is ready
+// AQI UI elements
+const aqiCard = document.getElementById('aqi-card');
+const aqiValueEl = document.getElementById('aqi-value');
+const aqiBadgeEl = document.getElementById('aqi-badge');
+const aqiPollutantsEl = document.getElementById('aqi-pollutants');
+const aqiRecommendationEl = document.getElementById('aqi-recommendation');
+
+function getAqiCategory(aqi) {
+    const value = Number(aqi);
+    if (!Number.isFinite(value)) {
+        return { label: 'Unknown', level: 0, badgeClass: '' };
+    }
+
+    // OpenWeatherMap air pollution uses a 1-5 AQI index.
+    switch (value) {
+        case 1:
+            return { label: 'Good', level: 1, badgeClass: 'aqi-1' };
+        case 2:
+            return { label: 'Fair', level: 2, badgeClass: 'aqi-2' };
+        case 3:
+            return { label: 'Moderate', level: 3, badgeClass: 'aqi-3' };
+        case 4:
+            return { label: 'Poor', level: 4, badgeClass: 'aqi-4' };
+        case 5:
+            return { label: 'Very Poor', level: 5, badgeClass: 'aqi-5' };
+        default:
+            if (value <= 50) return { label: 'Good', level: 1, badgeClass: 'aqi-1' };
+            if (value <= 100) return { label: 'Fair', level: 2, badgeClass: 'aqi-2' };
+            if (value <= 150) return { label: 'Moderate', level: 3, badgeClass: 'aqi-3' };
+            if (value <= 200) return { label: 'Poor', level: 4, badgeClass: 'aqi-4' };
+            return { label: 'Very Poor', level: 5, badgeClass: 'aqi-5' };
+    }
+}
+
+function getAqiHealthRecommendation(categoryLabel) {
+    switch (categoryLabel) {
+        case 'Good':
+            return 'Enjoy outdoor activities. Sensitive groups may still consider monitoring.';
+        case 'Fair':
+            return 'Unusually sensitive individuals should reduce prolonged outdoor exertion.';
+        case 'Moderate':
+            return 'Consider reducing prolonged outdoor activities if you experience symptoms.';
+        case 'Poor':
+            return 'Limit outdoor activity; keep windows closed and consider an air purifier.';
+        case 'Very Poor':
+            return 'Avoid outdoor activity. Stay indoors and follow local health guidance.';
+        default:
+            return 'Air quality information is unavailable right now.';
+    }
+}
+
+function renderAqiUI(airPollution) {
+    console.log('[AQI] renderAqiUI called with:', airPollution);
+    
+    if (!airPollution) {
+        console.warn('[AQI] No airPollution data provided');
+        if (aqiCard) aqiCard.classList.add('hidden');
+        return;
+    }
+
+    if (!Array.isArray(airPollution.list)) {
+        console.warn('[AQI] airPollution.list is not an array:', typeof airPollution.list, airPollution.list);
+        if (aqiCard) aqiCard.classList.add('hidden');
+        return;
+    }
+
+    if (airPollution.list.length === 0) {
+        console.warn('[AQI] airPollution.list is empty');
+        if (aqiCard) aqiCard.classList.add('hidden');
+        return;
+    }
+
+    console.log('[AQI] Rendering AQI data');
+    if (aqiCard) aqiCard.classList.remove('hidden');
+
+    const entry = airPollution.list[0];
+    console.log('[AQI] Entry:', entry);
+    const aqi = entry?.main?.aqi;
+    const pollutants = entry?.components || {};
+    console.log('[AQI] AQI value:', aqi, 'Pollutants:', pollutants);
+
+    const { label, badgeClass } = getAqiCategory(aqi);
+
+    if (aqiValueEl) aqiValueEl.textContent = Number.isFinite(Number(aqi)) ? String(aqi) : '--';
+
+    if (aqiBadgeEl) {
+        aqiBadgeEl.textContent = label;
+        aqiBadgeEl.classList.remove('aqi-1', 'aqi-2', 'aqi-3', 'aqi-4', 'aqi-5');
+        if (badgeClass) aqiBadgeEl.classList.add(badgeClass);
+    }
+
+    if (aqiPollutantsEl) {
+        // Show the most common pollutant components when available
+        const parts = [];
+        const pm25 = pollutants.pm2_5;
+        const pm10 = pollutants.pm10;
+        const o3 = pollutants.o3;
+        const no2 = pollutants.no2;
+        const so2 = pollutants.so2;
+        const co = pollutants.co;
+
+        const add = (key, label) => {
+            const v = pollutants[key];
+            if (v === undefined || v === null) return;
+            parts.push(`${label}: ${v}`);
+        };
+
+        add('pm2_5', 'PM2.5');
+        add('pm10', 'PM10');
+        add('o3', 'O₃');
+        add('no2', 'NO₂');
+        add('so2', 'SO₂');
+        add('co', 'CO');
+
+        aqiPollutantsEl.textContent = parts.length ? `Pollutants ${parts.join(' • ')}` : 'Pollutants --';
+    }
+
+    if (aqiRecommendationEl) {
+        aqiRecommendationEl.textContent = `Recommendation: ${getAqiHealthRecommendation(label)}`;
+    }
+}
+
+async function fetchAirQualityByCoords(lat, lon) {
+    const url = `${API_BASE}/air-quality?lat=${lat}&lon=${lon}`;
+
+    const response = await fetch(url);
+    if (!response.ok) {
+        throw new Error(`Air quality fetch failed: ${response.status}`);
+    }
+
+    return response.json();
+}
+
 function initUnitDisplay() {
     const unitElement = document.querySelector('.unit');
     if (unitElement) {
@@ -88,9 +220,234 @@ const trendStats = document.getElementById('trend-stats');
 const trendChartLabel = document.getElementById('trend-chart-label');
 const trendChartRange = document.getElementById('trend-chart-range');
 const trendControls = document.querySelector('.trend-controls');
+const historyDropdown = document.getElementById('history-dropdown');
+const favoriteList = document.getElementById('favorite-list');
+const recentList = document.getElementById('recent-list');
+const clearHistoryBtn = document.getElementById('clear-history-btn');
+const favoriteToggleBtn = document.getElementById('favorite-btn');
+
+const STORAGE_RECENT = 'weatherify-recent-cities';
+const STORAGE_FAVORITES = 'weatherify-favorite-cities';
+const MAX_RECENT_SEARCHES = 8;
+
 let sunTimeline = null;
 let dailyTrendData = [];
 let selectedTrendMetric = 'avg';
+let currentCityQuery = '';
+let currentCityLabel = '';
+let recentSearches = [];
+let favoriteCities = [];
+
+function normalizeCityKey(city) {
+    return city.trim().toLowerCase();
+}
+
+function loadHistoryArray(key) {
+    try {
+        const stored = localStorage.getItem(key);
+        const parsed = stored ? JSON.parse(stored) : [];
+        return Array.isArray(parsed) ? parsed : [];
+    } catch {
+        return [];
+    }
+}
+
+function saveHistoryArray(key, entries) {
+    localStorage.setItem(key, JSON.stringify(entries));
+}
+
+function renderHistory() {
+    if (!historyDropdown) return;
+
+    const favoriteMarkup = favoriteCities.map((item) => `
+        <button type="button" class="history-button favorite-entry" data-query="${item.query}">
+            <span>${item.label}</span>
+            <span class="history-badge">★</span>
+        </button>
+    `).join('');
+
+    const recentMarkup = recentSearches.map((item) => `
+        <button type="button" class="history-button recent-entry" data-query="${item.query}">
+            <span>${item.label}</span>
+        </button>
+    `).join('');
+
+    const hasHistory = favoriteCities.length > 0 || recentSearches.length > 0;
+    const emptyState = !hasHistory ? `
+        <div class="history-empty">
+            <p>No recent searches yet.</p>
+            <small>Search a city and it will appear here for quick access.</small>
+        </div>
+    ` : '';
+
+    const inner = historyDropdown.querySelector('.history-dropdown-inner');
+    if (inner) {
+        inner.innerHTML = `
+            <div class="history-section">
+                <div class="history-section-title">Favorites</div>
+                <div id="favorite-list" class="history-list">${favoriteMarkup}</div>
+            </div>
+            <div class="history-section">
+                <div class="history-section-title">Recent</div>
+                <div id="recent-list" class="history-list">${recentMarkup}</div>
+            </div>
+            ${emptyState}
+            <div class="history-actions">
+                <button id="clear-history-btn" type="button" class="clear-history-btn ${recentSearches.length === 0 ? 'hidden' : ''}">Clear history</button>
+            </div>
+        `;
+    }
+
+    const newFavoriteList = document.getElementById('favorite-list');
+    const newRecentList = document.getElementById('recent-list');
+    const newClearHistoryBtn = document.getElementById('clear-history-btn');
+
+    if (newFavoriteList) {
+        newFavoriteList.addEventListener('click', handleHistoryClick);
+    }
+    if (newRecentList) {
+        newRecentList.addEventListener('click', handleHistoryClick);
+    }
+    if (newClearHistoryBtn) {
+        newClearHistoryBtn.addEventListener('click', (event) => {
+            event.stopPropagation();
+            clearRecentHistory();
+        });
+    }
+}
+
+function updateFavoriteButton() {
+    if (!favoriteToggleBtn) return;
+
+    const active = favoriteCities.some((item) => normalizeCityKey(item.query) === normalizeCityKey(currentCityQuery));
+    const icon = favoriteToggleBtn.querySelector('.favorite-icon');
+    favoriteToggleBtn.setAttribute('aria-pressed', String(active));
+    if (icon) icon.textContent = active ? '★' : '☆';
+    favoriteToggleBtn.title = active ? 'Remove favorite' : 'Favorite';
+}
+
+function createCityEntry(data) {
+    const label = `${data.name}, ${data.sys.country}`;
+    const query = `${data.name},${data.sys.country}`;
+    return { query, label };
+}
+
+function addRecentSearch(entry) {
+    if (!entry || !entry.query) return;
+
+    const normalized = normalizeCityKey(entry.query);
+    recentSearches = recentSearches.filter((item) => normalizeCityKey(item.query) !== normalized);
+    recentSearches.unshift(entry);
+
+    if (recentSearches.length > MAX_RECENT_SEARCHES) {
+        recentSearches = recentSearches.slice(0, MAX_RECENT_SEARCHES);
+    }
+
+    saveHistoryArray(STORAGE_RECENT, recentSearches);
+    renderHistory();
+}
+
+function toggleFavoriteCity(entry) {
+    if (!entry || !entry.query) return;
+
+    const normalized = normalizeCityKey(entry.query);
+    const existingIndex = favoriteCities.findIndex((item) => normalizeCityKey(item.query) === normalized);
+
+    if (existingIndex >= 0) {
+        favoriteCities.splice(existingIndex, 1);
+    } else {
+        favoriteCities.unshift(entry);
+    }
+
+    saveHistoryArray(STORAGE_FAVORITES, favoriteCities);
+    updateFavoriteButton();
+    renderHistory();
+}
+
+function clearRecentHistory() {
+    recentSearches = [];
+    saveHistoryArray(STORAGE_RECENT, recentSearches);
+    renderHistory();
+}
+
+function handleHistoryClick(event) {
+    const button = event.target.closest('button.history-button');
+    if (!button) return;
+
+    const query = button.dataset.query;
+    if (!query) return;
+
+    cityInput.value = query.replace(/,([A-Z]{2})$/, ', $1');
+    clearBtn.classList.remove('hidden');
+    cityInput.dispatchEvent(new Event('input', { bubbles: true }));
+    hideSuggestions();
+    closeHistoryDropdown();
+    fetchWeatherData(query);
+}
+
+function openHistoryDropdown() {
+    if (!historyDropdown) return;
+    // Only show if user isn't typing and there is something to show
+    const hasAny = (favoriteCities && favoriteCities.length) || (recentSearches && recentSearches.length);
+    if (!hasAny) return;
+    historyDropdown.classList.remove('hidden');
+}
+
+function closeHistoryDropdown() {
+    if (!historyDropdown) return;
+    historyDropdown.classList.add('hidden');
+}
+
+function initHistory() {
+    recentSearches = loadHistoryArray(STORAGE_RECENT);
+    favoriteCities = loadHistoryArray(STORAGE_FAVORITES);
+    renderHistory();
+
+    if (cityInput) {
+        cityInput.addEventListener('focus', () => {
+            if (!cityInput.value.trim()) {
+                openHistoryDropdown();
+            }
+        });
+
+        cityInput.addEventListener('input', () => {
+            if (!cityInput.value.trim()) {
+                if (favoriteCities.length || recentSearches.length) {
+                    openHistoryDropdown();
+                }
+            } else {
+                closeHistoryDropdown();
+            }
+        });
+    }
+
+
+    if (historyDropdown) {
+        historyDropdown.addEventListener('click', handleHistoryClick);
+    }
+
+    if (clearHistoryBtn) {
+        clearHistoryBtn.classList.toggle('hidden', recentSearches.length === 0);
+    }
+
+    if (favoriteToggleBtn) {
+        favoriteToggleBtn.addEventListener('click', () => {
+            if (!currentCityQuery || !currentCityLabel) return;
+            toggleFavoriteCity({ query: currentCityQuery, label: currentCityLabel });
+        });
+    }
+}
+
+
+function setCurrentCity(data) {
+    currentCityLabel = `${data.name}, ${data.sys.country}`;
+    currentCityQuery = `${data.name},${data.sys.country}`;
+    updateFavoriteButton();
+
+    // Record as recent search (prevent duplicates via addRecentSearch)
+    addRecentSearch({ query: currentCityQuery, label: currentCityLabel });
+}
+
 
 // Unit toggle
 document.querySelectorAll('.unit-btn').forEach(btn => {
@@ -147,10 +504,13 @@ clearBtn.addEventListener('click', (e) => {
     cityInput.focus();
 });
 
-// Hide suggestions when clicking outside
+// Hide suggestions and history when clicking outside search controls
 document.addEventListener('click', (e) => {
     if (!e.target.closest('.search-box')) {
         hideSuggestions();
+    }
+    if (!e.target.closest('.search-container')) {
+        closeHistoryDropdown();
     }
 });
 
@@ -216,6 +576,7 @@ window.addEventListener('DOMContentLoaded', () => {
             console.error('Service Worker registration failed:', err);
         });
     }
+    initHistory();
     fetchWeatherData(DEFAULT_CITY);
 });
 
@@ -318,10 +679,30 @@ async function fetchWeatherByCoords(lat, lon) {
 
         rawData.current = currentData;
         rawData.forecast = forecastData;
+
+        // Fetch AQI using resolved coordinates when available
+        if (currentData?.coord?.lat !== undefined && currentData?.coord?.lon !== undefined) {
+            try {
+                console.log('[AQI] Fetching AQI for coordinates:', currentData.coord.lat, currentData.coord.lon);
+                const airQuality = await fetchAirQualityByCoords(currentData.coord.lat, currentData.coord.lon);
+                rawData.airQuality = airQuality;
+                console.log('[AQI] Rendering AQI UI after fetch');
+                renderAqiUI(airQuality);
+            } catch (error) {
+                console.error('[AQI] Error fetching/rendering AQI:', error);
+                rawData.airQuality = null;
+                if (aqiCard) aqiCard.classList.add('hidden');
+            }
+        } else {
+            console.warn('[AQI] No coordinates available for AQI fetch');
+        }
+
         localStorage.setItem('weatherify-last-data', JSON.stringify(rawData));
         updateUI(currentData);
         updateForecastUI(forecastData);
         showWeather();
+        setCurrentCity(currentData);
+
     } catch (error) {
         if (!navigator.onLine) {
             const cachedData = localStorage.getItem('weatherify-last-data');
@@ -342,6 +723,9 @@ async function fetchWeatherByCoords(lat, lon) {
     }
 }
 async function fetchWeatherData(city) {
+    // reset AQI section while fetching new data
+    if (aqiCard) aqiCard.classList.add('hidden');
+
     showLoading();
     hideError();
     // hideWeather();
@@ -370,10 +754,23 @@ async function fetchWeatherData(city) {
 
         rawData.current = currentData;
         rawData.forecast = forecastData;
+
+        if (currentData?.coord?.lat !== undefined && currentData?.coord?.lon !== undefined) {
+            try {
+                const airQuality = await fetchAirQualityByCoords(currentData.coord.lat, currentData.coord.lon);
+                rawData.airQuality = airQuality;
+                renderAqiUI(airQuality);
+            } catch {
+                rawData.airQuality = null;
+                if (aqiCard) aqiCard.classList.add('hidden');
+            }
+        }
+
         localStorage.setItem('weatherify-last-data', JSON.stringify(rawData));
         updateUI(currentData);
         updateForecastUI(forecastData);
         showWeather();
+        setCurrentCity(currentData);
     } catch (error) {
         console.error('Fetch error:', error);
         if (!navigator.onLine) {

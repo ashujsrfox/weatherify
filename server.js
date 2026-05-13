@@ -68,6 +68,8 @@ async function proxyOpenWeather(basePath, req, res) {
 app.get('/api/weather', (req, res) => proxyOpenWeather('/data/2.5/weather', req, res));
 app.get('/api/forecast', (req, res) => proxyOpenWeather('/data/2.5/forecast', req, res));
 app.get('/api/geo', (req, res) => proxyOpenWeather('/geo/1.0/direct', req, res));
+app.get('/api/air-quality', (req, res) => proxyOpenWeather('/data/2.5/air_pollution', req, res));
+
 
 app.use(express.static(path.join(__dirname, 'public')));
 
