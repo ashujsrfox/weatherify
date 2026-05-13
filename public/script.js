@@ -188,6 +188,7 @@ const locationBtn = document.getElementById('location-btn');
 const weatherContainer = document.getElementById('weather-container');
 const loading = document.getElementById('loading');
 const errorMessage = document.getElementById('error-message');
+const noDataMessage = document.getElementById('no-data-message');
 
 // Create suggestions dropdown
 const suggestionsContainer = document.createElement('div');
@@ -1320,6 +1321,52 @@ function showError(message) {
 function hideError() {
     errorMessage.classList.add('hidden');
 }
+// ===== STATE MANAGEMENT & VISIBILITY FUNCTIONS =====
+function showWeather() {
+    weatherContainer.classList.remove('hidden');
+    if (noDataMessage) noDataMessage.classList.add('hidden');
+    loading.classList.add('hidden');
+}
+
+function hideWeather() {
+    weatherContainer.classList.add('hidden');
+    loading.classList.add('hidden');
+}
+
+function showNoDataMessage() {
+    weatherContainer.classList.add('hidden');
+    if (noDataMessage) noDataMessage.classList.remove('hidden');
+    loading.classList.add('hidden');
+}
+
+function showLoading() {
+    weatherContainer.classList.add('hidden');
+    if (noDataMessage) noDataMessage.classList.add('hidden');
+    loading.classList.remove('hidden');
+}
+
+function hideLoading() {
+    loading.classList.add('hidden');
+}
+
+// ===== GLOBAL UNIT UPDATE FUNCTION =====
+function updateAllTemperatureDisplays() {
+    // Update unit label globally
+    const unitElements = document.querySelectorAll('.unit');
+    unitElements.forEach(el => {
+        el.textContent = unitLabel();
+    });
+    
+    // Update all temperature-related elements if data exists
+    if (rawData.current) {
+        updateUI(rawData.current);
+    }
+    
+    // Update forecast display with new units
+    if (rawData.forecast) {
+        updateForecastUI(rawData.forecast);
+    }
+}
 
 setInterval(renderSunPosition, 60000);
 
@@ -1366,3 +1413,10 @@ setInterval(renderSunPosition, 60000);
         }
     });
 })();
+
+
+
+
+
+
+
