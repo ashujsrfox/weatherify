@@ -894,7 +894,7 @@ body.dark-mode .hourly-toggle.active {
 }
 
 .graph-grid-line {
-    stroke: rgba(102, 126, 234, 0.15);
+    stroke: rgba(255, 255, 255, 0.12);
     stroke-width: 1;
     stroke-dasharray: 5 5;
 }
@@ -923,15 +923,20 @@ body.dark-mode .hourly-toggle.active {
     opacity: 0;
 }
 
-.graph-point-label {
-    fill: #2d3748;
-    font-size: 12px;
+.graph-point-label,
+.trend-value-label {
+    fill: #ffffff;
+    font-size: 13px;
     font-weight: 700;
+    text-shadow: 0 2px 6px rgba(0, 0, 0, 0.45);
+    paint-order: stroke;
+    stroke: rgba(0, 0, 0, 0.35);
+    stroke-width: 1px;
 }
 
 .graph-axis-label {
-    fill: #718096;
-    font-size: 11px;
+    fill: rgba(255, 255, 255, 0.88);
+    font-size: 12px;
     font-weight: 600;
 }
 
@@ -1147,12 +1152,12 @@ body.dark-mode .hourly-toggle.active {
     animation: popIn 0.45s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
 }
 
-.trend-value-label {
+/* .trend-value-label {
     paint-order: stroke;
     stroke: #f8fbff;
     stroke-width: 5px;
     stroke-linejoin: round;
-}
+} */
 
 .trend-stats {
     display: grid;
@@ -2059,6 +2064,20 @@ body.dark-mode .loading p {
 }
 
 @keyframes spin {
+    100% {
+        transform: rotate(360deg);
+    }
+}
+
+.input-error {
+    border: 1px solid #ff4d4f !important;
+    box-shadow: 0 0 10px rgba(255, 77, 79, 0.35);
+    transition: all 0.2s ease;
+}
+
+#error-message {
+    transition: all 0.2s ease;
+}
     100% { transform: rotate(360deg); }
 }
 
