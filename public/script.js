@@ -5,142 +5,9 @@ const DEGREE = '\u00B0';
 const DEFAULT_CITY = 'New Delhi';
 
 let currentUnit = 'C';
-let rawData = { current: null, forecast: null, airQuality: null };
+let rawData = { current: null, forecast: null };
 
-// AQI UI elements
-const aqiCard = document.getElementById('aqi-card');
-const aqiValueEl = document.getElementById('aqi-value');
-const aqiBadgeEl = document.getElementById('aqi-badge');
-const aqiPollutantsEl = document.getElementById('aqi-pollutants');
-const aqiRecommendationEl = document.getElementById('aqi-recommendation');
-
-function getAqiCategory(aqi) {
-    const value = Number(aqi);
-    if (!Number.isFinite(value)) {
-        return { label: 'Unknown', level: 0, badgeClass: '' };
-    }
-
-    // OpenWeatherMap air pollution uses a 1-5 AQI index.
-    switch (value) {
-        case 1:
-            return { label: 'Good', level: 1, badgeClass: 'aqi-1' };
-        case 2:
-            return { label: 'Fair', level: 2, badgeClass: 'aqi-2' };
-        case 3:
-            return { label: 'Moderate', level: 3, badgeClass: 'aqi-3' };
-        case 4:
-            return { label: 'Poor', level: 4, badgeClass: 'aqi-4' };
-        case 5:
-            return { label: 'Very Poor', level: 5, badgeClass: 'aqi-5' };
-        default:
-            if (value <= 50) return { label: 'Good', level: 1, badgeClass: 'aqi-1' };
-            if (value <= 100) return { label: 'Fair', level: 2, badgeClass: 'aqi-2' };
-            if (value <= 150) return { label: 'Moderate', level: 3, badgeClass: 'aqi-3' };
-            if (value <= 200) return { label: 'Poor', level: 4, badgeClass: 'aqi-4' };
-            return { label: 'Very Poor', level: 5, badgeClass: 'aqi-5' };
-    }
-}
-
-function getAqiHealthRecommendation(categoryLabel) {
-    switch (categoryLabel) {
-        case 'Good':
-            return 'Enjoy outdoor activities. Sensitive groups may still consider monitoring.';
-        case 'Fair':
-            return 'Unusually sensitive individuals should reduce prolonged outdoor exertion.';
-        case 'Moderate':
-            return 'Consider reducing prolonged outdoor activities if you experience symptoms.';
-        case 'Poor':
-            return 'Limit outdoor activity; keep windows closed and consider an air purifier.';
-        case 'Very Poor':
-            return 'Avoid outdoor activity. Stay indoors and follow local health guidance.';
-        default:
-            return 'Air quality information is unavailable right now.';
-    }
-}
-
-function renderAqiUI(airPollution) {
-    console.log('[AQI] renderAqiUI called with:', airPollution);
-    
-    if (!airPollution) {
-        console.warn('[AQI] No airPollution data provided');
-        if (aqiCard) aqiCard.classList.add('hidden');
-        return;
-    }
-
-    if (!Array.isArray(airPollution.list)) {
-        console.warn('[AQI] airPollution.list is not an array:', typeof airPollution.list, airPollution.list);
-        if (aqiCard) aqiCard.classList.add('hidden');
-        return;
-    }
-
-    if (airPollution.list.length === 0) {
-        console.warn('[AQI] airPollution.list is empty');
-        if (aqiCard) aqiCard.classList.add('hidden');
-        return;
-    }
-
-    console.log('[AQI] Rendering AQI data');
-    if (aqiCard) aqiCard.classList.remove('hidden');
-
-    const entry = airPollution.list[0];
-    console.log('[AQI] Entry:', entry);
-    const aqi = entry?.main?.aqi;
-    const pollutants = entry?.components || {};
-    console.log('[AQI] AQI value:', aqi, 'Pollutants:', pollutants);
-
-    const { label, badgeClass } = getAqiCategory(aqi);
-
-    if (aqiValueEl) aqiValueEl.textContent = Number.isFinite(Number(aqi)) ? String(aqi) : '--';
-
-    if (aqiBadgeEl) {
-        aqiBadgeEl.textContent = label;
-        aqiBadgeEl.classList.remove('aqi-1', 'aqi-2', 'aqi-3', 'aqi-4', 'aqi-5');
-        if (badgeClass) aqiBadgeEl.classList.add(badgeClass);
-    }
-
-    if (aqiPollutantsEl) {
-        // Show the most common pollutant components when available
-        //
-        const parts = [];
-        const pm25 = pollutants.pm2_5;
-        const pm10 = pollutants.pm10;
-        const o3 = pollutants.o3;
-        const no2 = pollutants.no2;
-        const so2 = pollutants.so2;
-        const co = pollutants.co;
-
-        const add = (key, label) => {
-            const v = pollutants[key];
-            if (v === undefined || v === null) return;
-            parts.push(`${label}: ${v}`);
-        };
-
-        add('pm2_5', 'PM2.5');
-        add('pm10', 'PM10');
-        add('o3', 'O₃');
-        add('no2', 'NO₂');
-        add('so2', 'SO₂');
-        add('co', 'CO');
-
-        aqiPollutantsEl.textContent = parts.length ? `Pollutants ${parts.join(' • ')}` : 'Pollutants --';
-    }
-
-    if (aqiRecommendationEl) {
-        aqiRecommendationEl.textContent = `Recommendation: ${getAqiHealthRecommendation(label)}`;
-    }
-}
-
-async function fetchAirQualityByCoords(lat, lon) {
-    const url = `${API_BASE}/air-quality?lat=${lat}&lon=${lon}`;
-
-    const response = await fetch(url);
-    if (!response.ok) {
-        throw new Error(`Air quality fetch failed: ${response.status}`);
-    }
-
-    return response.json();
-}
-
+// Initialize unit display after DOM is ready
 function initUnitDisplay() {
     const unitElement = document.querySelector('.unit');
     if (unitElement) {
@@ -213,268 +80,21 @@ const sunMarker = document.getElementById('sun-marker');
 const sunProgress = document.getElementById('sun-progress');
 const solarNoon = document.getElementById('solar-noon');
 const forecastContainer = document.getElementById('forecast-container');
-const temperatureChartCanvas = document.getElementById('temperature-chart');
+const forecastGraph = document.getElementById('forecast-graph');
 const forecastSummary = document.getElementById('forecast-summary');
 const graphRange = document.getElementById('graph-range');
-
-const humidityPrecipChartCanvas = document.getElementById('humidity-precip-chart');
-const humidityPrecipRange = document.getElementById('humidity-precip-range');
-const hourlyMetricControls = document.querySelectorAll('.hourly-toggle');
-let selectedHourlyMetric = 'humidity';
-
 const trendsSummary = document.getElementById('trends-summary');
 const trendChart = document.getElementById('trend-chart');
 const trendStats = document.getElementById('trend-stats');
 const trendChartLabel = document.getElementById('trend-chart-label');
 const trendChartRange = document.getElementById('trend-chart-range');
 const trendControls = document.querySelector('.trend-controls');
-
-const historyDropdown = document.getElementById('history-dropdown');
-const favoriteList = document.getElementById('favorite-list');
-const recentList = document.getElementById('recent-list');
-const clearHistoryBtn = document.getElementById('clear-history-btn');
-const favoriteToggleBtn = document.getElementById('favorite-btn');
-
-const STORAGE_RECENT = 'weatherify-recent-cities';
-const STORAGE_FAVORITES = 'weatherify-favorite-cities';
-const MAX_RECENT_SEARCHES = 8;
-
 let sunTimeline = null;
 let dailyTrendData = [];
 let selectedTrendMetric = 'avg';
-let currentCityQuery = '';
-let currentCityLabel = '';
-let recentSearches = [];
-let favoriteCities = [];
-
-function normalizeCityKey(city) {
-    return city.trim().toLowerCase();
-}
-
-function loadHistoryArray(key) {
-    try {
-        const stored = localStorage.getItem(key);
-        const parsed = stored ? JSON.parse(stored) : [];
-        return Array.isArray(parsed) ? parsed : [];
-    } catch {
-        return [];
-    }
-}
-
-function saveHistoryArray(key, entries) {
-    localStorage.setItem(key, JSON.stringify(entries));
-}
-
-function renderHistory() {
-    if (!historyDropdown) return;
-
-    const favoriteMarkup = favoriteCities.map((item) => `
-        <button type="button" class="history-button favorite-entry" data-query="${item.query}">
-            <span>${item.label}</span>
-            <span class="history-badge">★</span>
-        </button>
-    `).join('');
-
-    const recentMarkup = recentSearches.map((item) => `
-        <button type="button" class="history-button recent-entry" data-query="${item.query}">
-            <span>${item.label}</span>
-        </button>
-    `).join('');
-
-    const hasHistory = favoriteCities.length > 0 || recentSearches.length > 0;
-    const emptyState = !hasHistory ? `
-        <div class="history-empty">
-            <p>No recent searches yet.</p>
-            <small>Search a city and it will appear here for quick access.</small>
-        </div>
-    ` : '';
-
-    const inner = historyDropdown.querySelector('.history-dropdown-inner');
-    if (inner) {
-        inner.innerHTML = `
-            <div class="history-section">
-                <div class="history-section-title">Favorites</div>
-                <div id="favorite-list" class="history-list">${favoriteMarkup}</div>
-            </div>
-            <div class="history-section">
-                <div class="history-section-title">Recent</div>
-                <div id="recent-list" class="history-list">${recentMarkup}</div>
-            </div>
-            ${emptyState}
-            <div class="history-actions">
-                <button id="clear-history-btn" type="button" class="clear-history-btn ${recentSearches.length === 0 ? 'hidden' : ''}">Clear history</button>
-            </div>
-        `;
-    }
-
-    const newFavoriteList = document.getElementById('favorite-list');
-    const newRecentList = document.getElementById('recent-list');
-    const newClearHistoryBtn = document.getElementById('clear-history-btn');
-
-    if (newFavoriteList) {
-        newFavoriteList.addEventListener('click', handleHistoryClick);
-    }
-    if (newRecentList) {
-        newRecentList.addEventListener('click', handleHistoryClick);
-    }
-    if (newClearHistoryBtn) {
-        newClearHistoryBtn.addEventListener('click', (event) => {
-            event.stopPropagation();
-            clearRecentHistory();
-        });
-    }
-}
-
-function updateFavoriteButton() {
-    if (!favoriteToggleBtn) return;
-
-    const active = favoriteCities.some((item) => normalizeCityKey(item.query) === normalizeCityKey(currentCityQuery));
-    const icon = favoriteToggleBtn.querySelector('.favorite-icon');
-    favoriteToggleBtn.setAttribute('aria-pressed', String(active));
-    if (icon) icon.textContent = active ? '★' : '☆';
-    favoriteToggleBtn.title = active ? 'Remove favorite' : 'Favorite';
-}
-
-function createCityEntry(data) {
-    const label = `${data.name}, ${data.sys.country}`;
-    const query = `${data.name},${data.sys.country}`;
-    return { query, label };
-}
-
-function addRecentSearch(entry) {
-    if (!entry || !entry.query) return;
-
-    const normalized = normalizeCityKey(entry.query);
-    recentSearches = recentSearches.filter((item) => normalizeCityKey(item.query) !== normalized);
-    recentSearches.unshift(entry);
-
-    if (recentSearches.length > MAX_RECENT_SEARCHES) {
-        recentSearches = recentSearches.slice(0, MAX_RECENT_SEARCHES);
-    }
-
-    saveHistoryArray(STORAGE_RECENT, recentSearches);
-    renderHistory();
-}
-
-function toggleFavoriteCity(entry) {
-    if (!entry || !entry.query) return;
-
-    const normalized = normalizeCityKey(entry.query);
-    const existingIndex = favoriteCities.findIndex((item) => normalizeCityKey(item.query) === normalized);
-
-    if (existingIndex >= 0) {
-        favoriteCities.splice(existingIndex, 1);
-    } else {
-        favoriteCities.unshift(entry);
-    }
-
-    saveHistoryArray(STORAGE_FAVORITES, favoriteCities);
-    updateFavoriteButton();
-    renderHistory();
-}
-
-function clearRecentHistory() {
-    recentSearches = [];
-    saveHistoryArray(STORAGE_RECENT, recentSearches);
-    renderHistory();
-}
-
-function handleHistoryClick(event) {
-    const button = event.target.closest('button.history-button');
-    if (!button) return;
-
-    const query = button.dataset.query;
-    if (!query) return;
-
-    cityInput.value = query.replace(/,([A-Z]{2})$/, ', $1');
-    clearBtn.classList.remove('hidden');
-    cityInput.dispatchEvent(new Event('input', { bubbles: true }));
-    hideSuggestions();
-    closeHistoryDropdown();
-    fetchWeatherData(query);
-}
-
-function openHistoryDropdown() {
-    if (!historyDropdown) return;
-    // Only show if user isn't typing and there is something to show
-    const hasAny = (favoriteCities && favoriteCities.length) || (recentSearches && recentSearches.length);
-    if (!hasAny) return;
-    historyDropdown.classList.remove('hidden');
-}
-
-function closeHistoryDropdown() {
-    if (!historyDropdown) return;
-    historyDropdown.classList.add('hidden');
-}
-
-function initHistory() {
-    recentSearches = loadHistoryArray(STORAGE_RECENT);
-    favoriteCities = loadHistoryArray(STORAGE_FAVORITES);
-    renderHistory();
-
-    if (cityInput) {
-        cityInput.addEventListener('focus', () => {
-            if (!cityInput.value.trim()) {
-                openHistoryDropdown();
-            }
-        });
-
-        cityInput.addEventListener('input', () => {
-            if (!cityInput.value.trim()) {
-                if (favoriteCities.length || recentSearches.length) {
-                    openHistoryDropdown();
-                }
-            } else {
-                closeHistoryDropdown();
-            }
-        });
-    }
-
-
-    if (historyDropdown) {
-        historyDropdown.addEventListener('click', handleHistoryClick);
-    }
-
-    if (clearHistoryBtn) {
-        clearHistoryBtn.classList.toggle('hidden', recentSearches.length === 0);
-    }
-
-    if (favoriteToggleBtn) {
-        favoriteToggleBtn.addEventListener('click', () => {
-            if (!currentCityQuery || !currentCityLabel) return;
-            toggleFavoriteCity({ query: currentCityQuery, label: currentCityLabel });
-        });
-    }
-}
-
-
-function setCurrentCity(data) {
-    currentCityLabel = `${data.name}, ${data.sys.country}`;
-    currentCityQuery = `${data.name},${data.sys.country}`;
-    updateFavoriteButton();
-
-    // Record as recent search (prevent duplicates via addRecentSearch)
-    addRecentSearch({ query: currentCityQuery, label: currentCityLabel });
-}
-
-
-// Hourly metric toggle
-hourlyMetricControls.forEach((btn) => {
-    btn.addEventListener('click', () => {
-        selectedHourlyMetric = btn.dataset.hourlyMetric;
-        hourlyMetricControls.forEach((b) => b.classList.toggle('active', b === btn));
-        if (rawData.forecast) {
-            const hoursAhead = 24;
-            const hourlyPoints = buildHourlyPoints(rawData.forecast.list, rawData.forecast.city?.timezone || 0, hoursAhead);
-            renderHumidityPrecipChart(hourlyPoints);
-        }
-    });
-});
-
 
 // Unit toggle
 document.querySelectorAll('.unit-btn').forEach(btn => {
-
     btn.addEventListener('click', () => {
         currentUnit = btn.dataset.unit;
         document.querySelectorAll('.unit-btn').forEach(b => b.classList.remove('active'));
@@ -528,13 +148,10 @@ clearBtn.addEventListener('click', (e) => {
     cityInput.focus();
 });
 
-// Hide suggestions and history when clicking outside search controls
+// Hide suggestions when clicking outside
 document.addEventListener('click', (e) => {
     if (!e.target.closest('.search-box')) {
         hideSuggestions();
-    }
-    if (!e.target.closest('.search-container')) {
-        closeHistoryDropdown();
     }
 });
 
@@ -600,8 +217,7 @@ window.addEventListener('DOMContentLoaded', () => {
             console.error('Service Worker registration failed:', err);
         });
     }
-    initHistory();
-    fetchWeatherData(DEFAULT_CITY);
+    showNoDataMessage();
 });
 
 function handleSearch() {
@@ -703,30 +319,10 @@ async function fetchWeatherByCoords(lat, lon) {
 
         rawData.current = currentData;
         rawData.forecast = forecastData;
-
-        // Fetch AQI using resolved coordinates when available
-        if (currentData?.coord?.lat !== undefined && currentData?.coord?.lon !== undefined) {
-            try {
-                console.log('[AQI] Fetching AQI for coordinates:', currentData.coord.lat, currentData.coord.lon);
-                const airQuality = await fetchAirQualityByCoords(currentData.coord.lat, currentData.coord.lon);
-                rawData.airQuality = airQuality;
-                console.log('[AQI] Rendering AQI UI after fetch');
-                renderAqiUI(airQuality);
-            } catch (error) {
-                console.error('[AQI] Error fetching/rendering AQI:', error);
-                rawData.airQuality = null;
-                if (aqiCard) aqiCard.classList.add('hidden');
-            }
-        } else {
-            console.warn('[AQI] No coordinates available for AQI fetch');
-        }
-
         localStorage.setItem('weatherify-last-data', JSON.stringify(rawData));
         updateUI(currentData);
         updateForecastUI(forecastData);
         showWeather();
-        setCurrentCity(currentData);
-
     } catch (error) {
         if (!navigator.onLine) {
             const cachedData = localStorage.getItem('weatherify-last-data');
@@ -747,9 +343,6 @@ async function fetchWeatherByCoords(lat, lon) {
     }
 }
 async function fetchWeatherData(city) {
-    // reset AQI section while fetching new data
-    if (aqiCard) aqiCard.classList.add('hidden');
-
     showLoading();
     hideError();
     // hideWeather();
@@ -778,23 +371,10 @@ async function fetchWeatherData(city) {
 
         rawData.current = currentData;
         rawData.forecast = forecastData;
-
-        if (currentData?.coord?.lat !== undefined && currentData?.coord?.lon !== undefined) {
-            try {
-                const airQuality = await fetchAirQualityByCoords(currentData.coord.lat, currentData.coord.lon);
-                rawData.airQuality = airQuality;
-                renderAqiUI(airQuality);
-            } catch {
-                rawData.airQuality = null;
-                if (aqiCard) aqiCard.classList.add('hidden');
-            }
-        }
-
         localStorage.setItem('weatherify-last-data', JSON.stringify(rawData));
         updateUI(currentData);
         updateForecastUI(forecastData);
         showWeather();
-        setCurrentCity(currentData);
     } catch (error) {
         console.error('Fetch error:', error);
         if (!navigator.onLine) {
@@ -848,39 +428,48 @@ function updateForecastUI(forecastData) {
         return;
     }
 
-    const hourlyData = forecastData.list.slice(0, 8); // Next 24 hours (8 * 3 hours)
+    const chartData = forecastData.list.slice(0, 8);
     dailyTrendData = buildDailyTrendData(forecastData.list, forecastData.city?.timezone || 0);
+    const dailyData = [];
+    const seenDates = new Set();
+
+    for (const item of forecastData.list) {
+        const date = new Date(item.dt * 1000);
+        const dateKey = date.toLocaleDateString('en-CA');
+        const hour = date.getHours();
+
+        if (!seenDates.has(dateKey) && hour >= 11 && hour <= 14) {
+            seenDates.add(dateKey);
+            dailyData.push(item);
+        }
+
+        if (dailyData.length >= 5) break;
+    }
 
     forecastContainer.innerHTML = '';
 
-    hourlyData.forEach((hour) => {
-        const date = new Date(hour.dt * 1000);
-        const timeString = date.toLocaleTimeString('en-US', { hour: 'numeric', hour12: true });
-        const iconCode = hour.weather[0].icon;
-        const description = hour.weather[0].description;
+    dailyData.forEach((day) => {
+        const date = new Date(day.dt * 1000);
+        const dayName = date.toLocaleDateString('en-US', { weekday: 'short' });
+        const iconCode = day.weather[0].icon;
+        const description = day.weather[0].description;
 
         const card = document.createElement('div');
         card.className = 'forecast-card';
         card.innerHTML = `
-            <div class="forecast-day">${timeString}</div>
+            <div class="forecast-day">${dayName}</div>
             <div class="forecast-icon">
                 <img src="${ICON_URL}/${iconCode}@2x.png" alt="${description}">
             </div>
-            <div class="forecast-temp">${toUnit(hour.main.temp)}</div>
+            <div class="forecast-temp">${toUnit(day.main.temp)}</div>
             <div class="forecast-desc">${description}</div>
         `;
 
         forecastContainer.appendChild(card);
     });
 
-    updateForecastSummary(hourlyData);
-    renderTemperatureChart(hourlyData);
-
-    // Hourly humidity/precip chart
-    const hoursAhead = 24;
-    const hourlyPoints = buildHourlyPoints(forecastData.list, forecastData.city?.timezone || 0, hoursAhead);
-    renderHumidityPrecipChart(hourlyPoints);
-
+    updateForecastSummary(chartData);
+    renderForecastGraph(chartData);
     updateWeatherTrends(dailyTrendData);
 }
 
@@ -1251,161 +840,66 @@ function formatDuration(seconds) {
     return `${hours}h ${minutes}m`;
 }
 
-function renderTemperatureChart(hourlyData) {
-    if (!temperatureChartCanvas) return;
+function renderForecastGraph(chartData) {
+    if (!forecastGraph) return;
 
-    if (!hourlyData.length) {
-        // Clear chart if no data
-        if (window.temperatureChart) {
-            window.temperatureChart.destroy();
-        }
+    if (!chartData.length) {
+        forecastGraph.innerHTML = '';
         return;
     }
 
-    const labels = hourlyData.map(item => {
-        const date = new Date(item.dt * 1000);
-        return date.toLocaleTimeString('en-US', { hour: 'numeric', hour12: true });
-    });
+    const width = 640;
+    const height = 240;
+    const padding = { top: 24, right: 20, bottom: 42, left: 20 };
+    const innerWidth = width - padding.left - padding.right;
+    const innerHeight = height - padding.top - padding.bottom;
+    const temps = chartData.map((item) => toUnitNum(item.main.temp));
+    const minTemp = Math.min(...temps);
+    const maxTemp = Math.max(...temps);
+    const range = Math.max(maxTemp - minTemp, 1);
 
-    const temperatures = hourlyData.map(item => toUnitNum(item.main.temp));
+    const points = chartData.map((item, index) => {
+        const convertedTemp = toUnitNum(item.main.temp);
+        const x = padding.left + (index * innerWidth) / Math.max(chartData.length - 1, 1);
+        const y = padding.top + ((maxTemp - convertedTemp) / range) * innerHeight;
 
-    const data = {
-        labels: labels,
-        datasets: [{
-            label: `Temperature (${unitLabel()})`,
-            data: temperatures,
-            borderColor: 'rgba(75, 192, 192, 1)',
-            backgroundColor: 'rgba(75, 192, 192, 0.2)',
-            fill: true,
-            tension: 0.4
-        }]
-    };
-
-    const config = {
-        type: 'line',
-        data: data,
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-                legend: {
-                    display: false
-                }
-            },
-            scales: {
-                y: {
-                    beginAtZero: false,
-                    ticks: {
-                        callback: function(value) {
-                            return value + (currentUnit === 'K' ? 'K' : DEGREE);
-                        }
-                    }
-                }
-            }
-        }
-    };
-
-    if (window.temperatureChart) {
-        window.temperatureChart.destroy();
-    }
-    window.temperatureChart = new Chart(temperatureChartCanvas, config);
-}
-
-function buildHourlyPoints(forecastList, timezoneOffsetSeconds, hoursAhead) {
-    if (!Array.isArray(forecastList) || forecastList.length === 0) return [];
-
-    const nowSeconds = Math.floor(Date.now() / 1000);
-    const endSeconds = nowSeconds + hoursAhead * 60 * 60;
-
-    // OpenWeather dt is in UTC seconds.
-    const points = forecastList
-        .slice()
-        .sort((a, b) => a.dt - b.dt)
-        .filter((item) => item?.dt >= nowSeconds - 3600 && item?.dt <= endSeconds);
-
-    // Keep it compact (3-hour steps => ~8 points for 24h)
-    return points.slice(0, 10).map((item) => {
-        const localDate = getShiftedDate(item.dt, timezoneOffsetSeconds);
         return {
-            raw: item,
-            dt: item.dt,
-            timeLabel: localDate.toLocaleTimeString('en-US', { hour: 'numeric' }),
-            humidity: item.main?.humidity ?? null,
-            precipProb: item.pop ?? null,
-            precipAmount: item.rain?.['3h'] ?? null
+            x,
+            y,
+            temp: convertedTemp,
+            label: new Date(item.dt * 1000).toLocaleTimeString('en-US', {
+                hour: 'numeric'
+            })
         };
     });
+
+    const polylinePoints = points.map((point) => `${point.x},${point.y}`).join(' ');
+    const areaPoints = [
+        `${points[0].x},${height - padding.bottom}`,
+        ...points.map((point) => `${point.x},${point.y}`),
+        `${points[points.length - 1].x},${height - padding.bottom}`
+    ].join(' ');
+
+    const yGuides = [0, 0.5, 1].map((step) => {
+        const y = padding.top + innerHeight * step;
+        return `<line x1="${padding.left}" y1="${y}" x2="${width - padding.right}" y2="${y}" class="graph-grid-line"></line>`;
+    }).join('');
+
+    const labels = points.map((point) => `
+        <g transform="translate(${point.x}, ${point.y})">
+            <circle r="5" class="graph-point"></circle>
+            <text y="-14" text-anchor="middle" class="graph-point-label">${point.temp}${currentUnit === 'K' ? 'K' : DEGREE}</text>
+            <text y="${height - padding.bottom - point.y + 24}" text-anchor="middle" class="graph-axis-label">${point.label}</text>
+        </g>
+    `).join('');
+
+    forecastGraph.innerHTML = `
+        ${yGuides}
+        <polygon points="${areaPoints}" class="graph-area"></polygon>
+        <polyline points="${polylinePoints}" class="graph-line"></polyline>
+        ${labels}
+    `;
 }
-
-function renderHumidityPrecipChart(hourlyPoints) {
-    if (!humidityPrecipChartCanvas || !humidityPrecipRange) return;
-
-    if (!hourlyPoints || hourlyPoints.length === 0) {
-        if (window.humidityPrecipChart) {
-            window.humidityPrecipChart.destroy();
-        }
-        humidityPrecipRange.textContent = '--';
-        return;
-    }
-
-    const metric = selectedHourlyMetric;
-    const labels = hourlyPoints.map(p => p.timeLabel);
-    const values = hourlyPoints.map(p => {
-        if (metric === 'humidity') {
-            return p.humidity || 0;
-        }
-        return (p.precipProb || 0) * 100;
-    });
-
-    const data = {
-        labels: labels,
-        datasets: [{
-            label: metric === 'humidity' ? 'Humidity (%)' : 'Precipitation Probability (%)',
-            data: values,
-            borderColor: metric === 'humidity' ? 'rgba(54, 162, 235, 1)' : 'rgba(255, 99, 132, 1)',
-            backgroundColor: metric === 'humidity' ? 'rgba(54, 162, 235, 0.2)' : 'rgba(255, 99, 132, 0.2)',
-            fill: true,
-            tension: 0.4
-        }]
-    };
-
-    const config = {
-        type: 'line',
-        data: data,
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-                legend: {
-                    display: false
-                }
-            },
-            scales: {
-                y: {
-                    beginAtZero: true,
-                    max: metric === 'humidity' ? 100 : 100,
-                    ticks: {
-                        callback: function(value) {
-                            return value + '%';
-                        }
-                    }
-                }
-            }
-        }
-    };
-
-    if (window.humidityPrecipChart) {
-        window.humidityPrecipChart.destroy();
-    }
-    window.humidityPrecipChart = new Chart(humidityPrecipChartCanvas, config);
-
-    // Update range label
-    const minV = Math.min(...values);
-    const maxV = Math.max(...values);
-    const suffix = metric === 'humidity' ? 'Humidity %' : 'Precip Probability %';
-    humidityPrecipRange.textContent = `${minV}% - ${maxV}% (${suffix})`;
-}
-
 function getWindDirection(deg) {
     if (deg === undefined || deg === null) return '';
     const directions = ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'];
