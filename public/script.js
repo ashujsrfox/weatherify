@@ -627,7 +627,7 @@ function renderTrendChart(trendData) {
     const metric = selectedTrendMetric in metricLabels ? selectedTrendMetric : 'avg';
     const width = 760;
     const height = 280;
-    const padding = { top: 46, right: 42, bottom: 48, left: 54 };
+    const padding = { top: 46, right: 42, bottom: 48, left: 66 };
     const innerWidth = width - padding.left - padding.right;
     const innerHeight = height - padding.top - padding.bottom;
     const values = trendData.map((day) => day[metric]);
@@ -636,11 +636,14 @@ function renderTrendChart(trendData) {
     const minValue = Math.floor(Math.min(...lowValues) - 1);
     const maxValue = Math.ceil(Math.max(...highValues) + 1);
     const range = Math.max(maxValue - minValue, 1);
-    const barWidth = Math.min(58, innerWidth / trendData.length * 0.45);
+    const barWidth = Math.min(52, innerWidth / trendData.length * 0.42);
+    // inset x so the first/last bar never clips into the axis or right edge
+    const xInset = barWidth / 2 + 6;
+    const xSpan  = innerWidth - xInset * 2;
 
     const getY = (value) => padding.top + ((maxValue - value) / range) * innerHeight;
     const points = trendData.map((day, index) => {
-        const x = padding.left + (index * innerWidth) / Math.max(trendData.length - 1, 1);
+        const x = padding.left + xInset + (index * xSpan) / Math.max(trendData.length - 1, 1);
         return {
             ...day,
             x,
@@ -857,7 +860,7 @@ function renderForecastGraph(chartData) {
 
     const width = 640;
     const height = 240;
-    const padding = { top: 24, right: 20, bottom: 42, left: 20 };
+    const padding = { top: 24, right: 20, bottom: 42, left: 52 };
     const innerWidth = width - padding.left - padding.right;
     const innerHeight = height - padding.top - padding.bottom;
     const temps = chartData.map((item) => toUnitNum(item.main.temp));
@@ -889,7 +892,11 @@ function renderForecastGraph(chartData) {
 
     const yGuides = [0, 0.5, 1].map((step) => {
         const y = padding.top + innerHeight * step;
-        return `<line x1="${padding.left}" y1="${y}" x2="${width - padding.right}" y2="${y}" class="graph-grid-line"></line>`;
+        const value = maxTemp - range * step;
+        return `
+            <line x1="${padding.left}" y1="${y}" x2="${width - padding.right}" y2="${y}" class="graph-grid-line"></line>
+            <text x="${padding.left - 8}" y="${y + 4}" text-anchor="end" class="graph-axis-label">${toUnitNum(value)}${DEGREE}</text>
+        `;
     }).join('');
 
     const labels = points.map((point) => `
