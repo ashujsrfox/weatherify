@@ -857,10 +857,9 @@ function renderForecastGraph(chartData) {
         forecastGraph.innerHTML = '';
         return;
     }
-
     const width = 640;
-    const height = 240;
-    const padding = { top: 24, right: 20, bottom: 42, left: 52 };
+    const height = 260;
+    const padding = { top: 30, right: 24, bottom: 54, left: 52 };
     const innerWidth = width - padding.left - padding.right;
     const innerHeight = height - padding.top - padding.bottom;
     const temps = chartData.map((item) => toUnitNum(item.main.temp));
@@ -868,45 +867,52 @@ function renderForecastGraph(chartData) {
     const maxTemp = Math.max(...temps);
     const range = Math.max(maxTemp - minTemp, 1);
 
+    // inset x so first/last dots aren't clipped at edges
+    const xInset = 10;
+    const xSpan  = innerWidth - xInset * 2;
+
     const points = chartData.map((item, index) => {
         const convertedTemp = toUnitNum(item.main.temp);
-        const x = padding.left + (index * innerWidth) / Math.max(chartData.length - 1, 1);
+        const x = padding.left + xInset + (index * xSpan) / Math.max(chartData.length - 1, 1);
         const y = padding.top + ((maxTemp - convertedTemp) / range) * innerHeight;
-
         return {
-            x,
-            y,
+            x, y,
             temp: convertedTemp,
-            label: new Date(item.dt * 1000).toLocaleTimeString('en-US', {
-                hour: 'numeric'
-            })
+            label: new Date(item.dt * 1000).toLocaleTimeString('en-US', { hour: 'numeric', hour12: true })
         };
     });
 
-    const polylinePoints = points.map((point) => `${point.x},${point.y}`).join(' ');
+    const polylinePoints = points.map((p) => `${p.x},${p.y}`).join(' ');
+    const baseline = padding.top + innerHeight;
     const areaPoints = [
-        `${points[0].x},${height - padding.bottom}`,
-        ...points.map((point) => `${point.x},${point.y}`),
-        `${points[points.length - 1].x},${height - padding.bottom}`
+        `${points[0].x},${baseline}`,
+        ...points.map((p) => `${p.x},${p.y}`),
+        `${points[points.length - 1].x},${baseline}`
     ].join(' ');
 
+    // Y-axis labels — values are already in the user's unit, just round them
     const yGuides = [0, 0.5, 1].map((step) => {
         const y = padding.top + innerHeight * step;
-        const value = maxTemp - range * step;
+        const val = Math.round(maxTemp - range * step);
         return `
             <line x1="${padding.left}" y1="${y}" x2="${width - padding.right}" y2="${y}" class="graph-grid-line"></line>
-            <text x="${padding.left - 8}" y="${y + 4}" text-anchor="end" class="graph-axis-label">${toUnitNum(value)}${DEGREE}</text>
+            <text x="${padding.left - 8}" y="${y + 4}" text-anchor="end" class="graph-axis-label">${val}${DEGREE}</text>
         `;
     }).join('');
 
-    const labels = points.map((point) => `
-        <g transform="translate(${point.x}, ${point.y})">
-            <circle r="5" class="graph-point"></circle>
-            <text y="-14" text-anchor="middle" class="graph-point-label">${point.temp}${currentUnit === 'K' ? 'K' : DEGREE}</text>
-            <text y="${height - padding.bottom - point.y + 24}" text-anchor="middle" class="graph-axis-label">${point.label}</text>
+    // Data point dots + temperature labels above + time labels below baseline
+    const dotLabels = points.map((p) => `
+        <g>
+            <circle cx="${p.x}" cy="${p.y}" r="5" class="graph-point"></circle>
+            <text x="${p.x}" y="${p.y - 10}" text-anchor="middle" class="graph-point-label">${p.temp}${currentUnit === 'K' ? 'K' : DEGREE}</text>
+            <text x="${p.x}" y="${baseline + 18}" text-anchor="middle" class="graph-axis-label">${p.label}</text>
         </g>
     `).join('');
 
+    // Baseline x-axis line
+    const baseLine = `<line x1="${padding.left}" y1="${baseline}" x2="${width - padding.right}" y2="${baseline}" class="graph-grid-line" opacity="0.8"></line>`;
+
+    forecastGraph.setAttribute('viewBox', `0 0 ${width} ${height}`);
     forecastGraph.innerHTML = `
         <defs>
             <linearGradient id="areaGradPurple" x1="0" y1="0" x2="0" y2="1">
@@ -915,11 +921,13 @@ function renderForecastGraph(chartData) {
             </linearGradient>
         </defs>
         ${yGuides}
+        ${baseLine}
         <polygon points="${areaPoints}" class="graph-area"></polygon>
         <polyline points="${polylinePoints}" class="graph-line"></polyline>
-        ${labels}
+        ${dotLabels}
     `;
 }
+
 function getWindDirection(deg) {
     if (deg === undefined || deg === null) return '';
     const directions = ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'];
