@@ -474,7 +474,7 @@ document.querySelectorAll('.unit-btn').forEach(btn => {
 // Event Listeners
 searchBtn.addEventListener('click', handleSearch);
 cityInput.addEventListener('keypress', (e) => {
-    if (e.key === 'Enter' && !searchBtn.disabled) {
+    if (e.key === 'Enter') {
         hideSuggestions();
         handleSearch();
     }
@@ -491,33 +491,11 @@ if (locationBtn) {
 let debounceTimer;
 cityInput.addEventListener('input', (e) => {
     hideError();
-
     const query = e.target.value.trim();
     searchBtn.disabled = query.length === 0;
     clearBtn.classList.toggle('hidden', cityInput.value.length === 0);
 
     clearTimeout(debounceTimer);
-
-    // Empty input
-    if (query.length === 0) {
-        searchBtn.disabled = true;
-        cityInput.classList.remove('input-error');
-        hideSuggestions();
-        return;
-    }
-
-    // Invalid city input
-    if (!isValidCity(query)) {
-        searchBtn.disabled = true;
-        cityInput.classList.add('input-error');
-        showError('Please enter a valid city name.');
-        hideSuggestions();
-        return;
-    }
-
-    // Valid input
-    cityInput.classList.remove('input-error');
-    searchBtn.disabled = false;
 
     if (query.length < 2) {
         hideSuggestions();
@@ -613,18 +591,10 @@ window.addEventListener('DOMContentLoaded', () => {
 
 function handleSearch() {
     const city = cityInput.value.trim();
-
-    if (!isValidCity(city)) {
-        cityInput.classList.add('input-error');
-        showError('Please enter a valid city name.');
-        return;
+    if (city) {
+        fetchWeatherData(city);
     }
-
-    cityInput.classList.remove('input-error');
-    fetchWeatherData(city);
 }
-
-function detectUserLocation() {
 function getLocationErrorMessage(error) {
     if (!error) return 'Unable to get your location.';
 
