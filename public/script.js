@@ -613,9 +613,9 @@ function renderTrendChart(trendData) {
     const padding = { top: 46, right: 42, bottom: 48, left: 54 };
     const innerWidth = width - padding.left - padding.right;
     const innerHeight = height - padding.top - padding.bottom;
-    const values = trendData.map((day) => toUnitNum(day[metric]));
-    const lowValues = trendData.map((day) => toUnitNum(day.low));
-    const highValues = trendData.map((day) => toUnitNum(day.high));
+    const values = trendData.map((day) => day[metric]);
+    const lowValues = trendData.map((day) => day.low);
+    const highValues = trendData.map((day) => day.high);
     const minValue = Math.floor(Math.min(...lowValues) - 1);
     const maxValue = Math.ceil(Math.max(...highValues) + 1);
     const range = Math.max(maxValue - minValue, 1);
@@ -624,15 +624,11 @@ function renderTrendChart(trendData) {
     const getY = (value) => padding.top + ((maxValue - value) / range) * innerHeight;
     const points = trendData.map((day, index) => {
         const x = padding.left + (index * innerWidth) / Math.max(trendData.length - 1, 1);
-        const convertedMetric = toUnitNum(day[metric]);
-        const x = padding.left + xInset + (index * xSpan) / Math.max(trendData.length - 1, 1);
         return {
             ...day,
             x,
-            y: getY(convertedMetric),
-            value: convertedMetric,
-            highConverted: toUnitNum(day.high),
-            lowConverted: toUnitNum(day.low)
+            y: getY(day[metric]),
+            value: day[metric]
         };
     });
 
@@ -642,9 +638,9 @@ function renderTrendChart(trendData) {
         return `
             <g class="trend-bar-group">
                 <rect x="${point.x - barWidth / 2}" y="${point.y}" width="${barWidth}" height="${barHeight}" rx="10" class="trend-bar"></rect>
-                <line x1="${point.x}" y1="${getY(point.lowConverted)}" x2="${point.x}" y2="${getY(point.highConverted)}" class="trend-range-line"></line>
-                <circle cx="${point.x}" cy="${getY(point.highConverted)}" r="4" class="trend-high-dot"></circle>
-                <circle cx="${point.x}" cy="${getY(point.lowConverted)}" r="4" class="trend-low-dot"></circle>
+                <line x1="${point.x}" y1="${getY(point.low)}" x2="${point.x}" y2="${getY(point.high)}" class="trend-range-line"></line>
+                <circle cx="${point.x}" cy="${getY(point.high)}" r="4" class="trend-high-dot"></circle>
+                <circle cx="${point.x}" cy="${getY(point.low)}" r="4" class="trend-low-dot"></circle>
             </g>
         `;
     }).join('');
@@ -654,16 +650,12 @@ function renderTrendChart(trendData) {
         const value = Math.round(maxValue - range * step);
         return `
             <line x1="${padding.left}" y1="${y}" x2="${width - padding.right}" y2="${y}" class="graph-grid-line"></line>
-            <text x="${padding.left - 12}" y="${y + 4}" text-anchor="end" class="graph-axis-label">${value}${currentUnit === 'K' ? 'K' : DEGREE}</text>
-            <text x="${padding.left - 12}" y="${y + 4}" text-anchor="end" class="graph-axis-label">${toUnitNum(value)}${DEGREE}</text>
             <text x="${padding.left - 12}" y="${y + 4}" text-anchor="end" class="graph-axis-label">${value}${DEGREE}</text>
         `;
     }).join('');
     const labels = points.map((point) => `
         <g transform="translate(${point.x}, ${point.y})">
             <circle r="5" class="trend-line-point"></circle>
-            <text y="-18" text-anchor="middle" class="graph-point-label trend-value-label">${Math.round(point.value)}${currentUnit === 'K' ? 'K' : DEGREE}</text>
-            <text y="-18" text-anchor="middle" class="graph-point-label trend-value-label">${toUnitNum(point.value)}${DEGREE}</text>
             <text y="-18" text-anchor="middle" class="graph-point-label trend-value-label">${Math.round(point.value)}${DEGREE}</text>
             <text y="${height - padding.bottom - point.y + 28}" text-anchor="middle" class="graph-axis-label">${point.dayLabel}</text>
         </g>
@@ -682,8 +674,6 @@ function renderTrendChart(trendData) {
     }
 
     if (trendChartRange) {
-        trendChartRange.textContent = `${Math.round(Math.min(...values))}${unitLabel()} - ${Math.round(Math.max(...values))}${unitLabel()}`;
-        trendChartRange.textContent = `${toUnit(Math.min(...values))} — ${toUnit(Math.max(...values))}`;
         trendChartRange.textContent = `${Math.round(Math.min(...values))}${DEGREE}C - ${Math.round(Math.max(...values))}${DEGREE}C`;
     }
 }
