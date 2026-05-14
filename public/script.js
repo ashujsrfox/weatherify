@@ -213,9 +213,15 @@ const sunMarker = document.getElementById('sun-marker');
 const sunProgress = document.getElementById('sun-progress');
 const solarNoon = document.getElementById('solar-noon');
 const forecastContainer = document.getElementById('forecast-container');
-const forecastGraph = document.getElementById('forecast-graph');
+const temperatureChartCanvas = document.getElementById('temperature-chart');
 const forecastSummary = document.getElementById('forecast-summary');
 const graphRange = document.getElementById('graph-range');
+
+const humidityPrecipChartCanvas = document.getElementById('humidity-precip-chart');
+const humidityPrecipRange = document.getElementById('humidity-precip-range');
+const hourlyMetricControls = document.querySelectorAll('.hourly-toggle');
+let selectedHourlyMetric = 'humidity';
+
 const trendsSummary = document.getElementById('trends-summary');
 const trendChart = document.getElementById('trend-chart');
 const trendStats = document.getElementById('trend-stats');
@@ -453,6 +459,7 @@ function setCurrentCity(data) {
 
 // Unit toggle
 document.querySelectorAll('.unit-btn').forEach(btn => {
+
     btn.addEventListener('click', () => {
         currentUnit = btn.dataset.unit;
         document.querySelectorAll('.unit-btn').forEach(b => b.classList.remove('active'));
@@ -467,7 +474,7 @@ document.querySelectorAll('.unit-btn').forEach(btn => {
 // Event Listeners
 searchBtn.addEventListener('click', handleSearch);
 cityInput.addEventListener('keypress', (e) => {
-    if (e.key === 'Enter') {
+    if (e.key === 'Enter' && !searchBtn.disabled) {
         hideSuggestions();
         handleSearch();
     }
@@ -484,11 +491,33 @@ if (locationBtn) {
 let debounceTimer;
 cityInput.addEventListener('input', (e) => {
     hideError();
+
     const query = e.target.value.trim();
     searchBtn.disabled = query.length === 0;
     clearBtn.classList.toggle('hidden', cityInput.value.length === 0);
 
     clearTimeout(debounceTimer);
+
+    // Empty input
+    if (query.length === 0) {
+        searchBtn.disabled = true;
+        cityInput.classList.remove('input-error');
+        hideSuggestions();
+        return;
+    }
+
+    // Invalid city input
+    if (!isValidCity(query)) {
+        searchBtn.disabled = true;
+        cityInput.classList.add('input-error');
+        showError('Please enter a valid city name.');
+        hideSuggestions();
+        return;
+    }
+
+    // Valid input
+    cityInput.classList.remove('input-error');
+    searchBtn.disabled = false;
 
     if (query.length < 2) {
         hideSuggestions();
@@ -584,10 +613,18 @@ window.addEventListener('DOMContentLoaded', () => {
 
 function handleSearch() {
     const city = cityInput.value.trim();
-    if (city) {
-        fetchWeatherData(city);
+
+    if (!isValidCity(city)) {
+        cityInput.classList.add('input-error');
+        showError('Please enter a valid city name.');
+        return;
     }
+
+    cityInput.classList.remove('input-error');
+    fetchWeatherData(city);
 }
+
+function detectUserLocation() {
 function getLocationErrorMessage(error) {
     if (!error) return 'Unable to get your location.';
 
@@ -826,48 +863,39 @@ function updateForecastUI(forecastData) {
         return;
     }
 
-    const chartData = forecastData.list.slice(0, 8);
+    const hourlyData = forecastData.list.slice(0, 8); // Next 24 hours (8 * 3 hours)
     dailyTrendData = buildDailyTrendData(forecastData.list, forecastData.city?.timezone || 0);
-    const dailyData = [];
-    const seenDates = new Set();
-
-    for (const item of forecastData.list) {
-        const date = new Date(item.dt * 1000);
-        const dateKey = date.toLocaleDateString('en-CA');
-        const hour = date.getHours();
-
-        if (!seenDates.has(dateKey) && hour >= 11 && hour <= 14) {
-            seenDates.add(dateKey);
-            dailyData.push(item);
-        }
-
-        if (dailyData.length >= 5) break;
-    }
 
     forecastContainer.innerHTML = '';
 
-    dailyData.forEach((day) => {
-        const date = new Date(day.dt * 1000);
-        const dayName = date.toLocaleDateString('en-US', { weekday: 'short' });
-        const iconCode = day.weather[0].icon;
-        const description = day.weather[0].description;
+    hourlyData.forEach((hour) => {
+        const date = new Date(hour.dt * 1000);
+        const timeString = date.toLocaleTimeString('en-US', { hour: 'numeric', hour12: true });
+        const iconCode = hour.weather[0].icon;
+        const description = hour.weather[0].description;
 
         const card = document.createElement('div');
         card.className = 'forecast-card';
         card.innerHTML = `
-            <div class="forecast-day">${dayName}</div>
+            <div class="forecast-day">${timeString}</div>
             <div class="forecast-icon">
                 <img src="${ICON_URL}/${iconCode}@2x.png" alt="${description}">
             </div>
-            <div class="forecast-temp">${toUnit(day.main.temp)}</div>
+            <div class="forecast-temp">${toUnit(hour.main.temp)}</div>
             <div class="forecast-desc">${description}</div>
         `;
 
         forecastContainer.appendChild(card);
     });
 
-    updateForecastSummary(chartData);
-    renderForecastGraph(chartData);
+    updateForecastSummary(hourlyData);
+    renderTemperatureChart(hourlyData);
+
+    // Hourly humidity/precip chart
+    const hoursAhead = 24;
+    const hourlyPoints = buildHourlyPoints(forecastData.list, forecastData.city?.timezone || 0, hoursAhead);
+    renderHumidityPrecipChart(hourlyPoints);
+
     updateWeatherTrends(dailyTrendData);
 }
 
@@ -1011,9 +1039,9 @@ function renderTrendChart(trendData) {
     const padding = { top: 46, right: 42, bottom: 48, left: 54 };
     const innerWidth = width - padding.left - padding.right;
     const innerHeight = height - padding.top - padding.bottom;
-    const values = trendData.map((day) => day[metric]);
-    const lowValues = trendData.map((day) => day.low);
-    const highValues = trendData.map((day) => day.high);
+    const values = trendData.map((day) => toUnitNum(day[metric]));
+    const lowValues = trendData.map((day) => toUnitNum(day.low));
+    const highValues = trendData.map((day) => toUnitNum(day.high));
     const minValue = Math.floor(Math.min(...lowValues) - 1);
     const maxValue = Math.ceil(Math.max(...highValues) + 1);
     const range = Math.max(maxValue - minValue, 1);
@@ -1022,11 +1050,15 @@ function renderTrendChart(trendData) {
     const getY = (value) => padding.top + ((maxValue - value) / range) * innerHeight;
     const points = trendData.map((day, index) => {
         const x = padding.left + (index * innerWidth) / Math.max(trendData.length - 1, 1);
+        const convertedMetric = toUnitNum(day[metric]);
+        const x = padding.left + xInset + (index * xSpan) / Math.max(trendData.length - 1, 1);
         return {
             ...day,
             x,
-            y: getY(day[metric]),
-            value: day[metric]
+            y: getY(convertedMetric),
+            value: convertedMetric,
+            highConverted: toUnitNum(day.high),
+            lowConverted: toUnitNum(day.low)
         };
     });
 
@@ -1036,9 +1068,9 @@ function renderTrendChart(trendData) {
         return `
             <g class="trend-bar-group">
                 <rect x="${point.x - barWidth / 2}" y="${point.y}" width="${barWidth}" height="${barHeight}" rx="10" class="trend-bar"></rect>
-                <line x1="${point.x}" y1="${getY(point.low)}" x2="${point.x}" y2="${getY(point.high)}" class="trend-range-line"></line>
-                <circle cx="${point.x}" cy="${getY(point.high)}" r="4" class="trend-high-dot"></circle>
-                <circle cx="${point.x}" cy="${getY(point.low)}" r="4" class="trend-low-dot"></circle>
+                <line x1="${point.x}" y1="${getY(point.lowConverted)}" x2="${point.x}" y2="${getY(point.highConverted)}" class="trend-range-line"></line>
+                <circle cx="${point.x}" cy="${getY(point.highConverted)}" r="4" class="trend-high-dot"></circle>
+                <circle cx="${point.x}" cy="${getY(point.lowConverted)}" r="4" class="trend-low-dot"></circle>
             </g>
         `;
     }).join('');
@@ -1048,12 +1080,16 @@ function renderTrendChart(trendData) {
         const value = Math.round(maxValue - range * step);
         return `
             <line x1="${padding.left}" y1="${y}" x2="${width - padding.right}" y2="${y}" class="graph-grid-line"></line>
+            <text x="${padding.left - 12}" y="${y + 4}" text-anchor="end" class="graph-axis-label">${value}${currentUnit === 'K' ? 'K' : DEGREE}</text>
+            <text x="${padding.left - 12}" y="${y + 4}" text-anchor="end" class="graph-axis-label">${toUnitNum(value)}${DEGREE}</text>
             <text x="${padding.left - 12}" y="${y + 4}" text-anchor="end" class="graph-axis-label">${value}${DEGREE}</text>
         `;
     }).join('');
     const labels = points.map((point) => `
         <g transform="translate(${point.x}, ${point.y})">
             <circle r="5" class="trend-line-point"></circle>
+            <text y="-18" text-anchor="middle" class="graph-point-label trend-value-label">${Math.round(point.value)}${currentUnit === 'K' ? 'K' : DEGREE}</text>
+            <text y="-18" text-anchor="middle" class="graph-point-label trend-value-label">${toUnitNum(point.value)}${DEGREE}</text>
             <text y="-18" text-anchor="middle" class="graph-point-label trend-value-label">${Math.round(point.value)}${DEGREE}</text>
             <text y="${height - padding.bottom - point.y + 28}" text-anchor="middle" class="graph-axis-label">${point.dayLabel}</text>
         </g>
@@ -1072,6 +1108,8 @@ function renderTrendChart(trendData) {
     }
 
     if (trendChartRange) {
+        trendChartRange.textContent = `${Math.round(Math.min(...values))}${unitLabel()} - ${Math.round(Math.max(...values))}${unitLabel()}`;
+        trendChartRange.textContent = `${toUnit(Math.min(...values))} — ${toUnit(Math.max(...values))}`;
         trendChartRange.textContent = `${Math.round(Math.min(...values))}${DEGREE}C - ${Math.round(Math.max(...values))}${DEGREE}C`;
     }
 }
@@ -1228,66 +1266,161 @@ function formatDuration(seconds) {
     return `${hours}h ${minutes}m`;
 }
 
-function renderForecastGraph(chartData) {
-    if (!forecastGraph) return;
+function renderTemperatureChart(hourlyData) {
+    if (!temperatureChartCanvas) return;
 
-    if (!chartData.length) {
-        forecastGraph.innerHTML = '';
+    if (!hourlyData.length) {
+        // Clear chart if no data
+        if (window.temperatureChart) {
+            window.temperatureChart.destroy();
+        }
         return;
     }
 
-    const width = 640;
-    const height = 240;
-    const padding = { top: 24, right: 20, bottom: 42, left: 20 };
-    const innerWidth = width - padding.left - padding.right;
-    const innerHeight = height - padding.top - padding.bottom;
-    const temps = chartData.map((item) => toUnitNum(item.main.temp));
-    const minTemp = Math.min(...temps);
-    const maxTemp = Math.max(...temps);
-    const range = Math.max(maxTemp - minTemp, 1);
-
-    const points = chartData.map((item, index) => {
-        const convertedTemp = toUnitNum(item.main.temp);
-        const x = padding.left + (index * innerWidth) / Math.max(chartData.length - 1, 1);
-        const y = padding.top + ((maxTemp - convertedTemp) / range) * innerHeight;
-
-        return {
-            x,
-            y,
-            temp: convertedTemp,
-            label: new Date(item.dt * 1000).toLocaleTimeString('en-US', {
-                hour: 'numeric'
-            })
-        };
+    const labels = hourlyData.map(item => {
+        const date = new Date(item.dt * 1000);
+        return date.toLocaleTimeString('en-US', { hour: 'numeric', hour12: true });
     });
 
-    const polylinePoints = points.map((point) => `${point.x},${point.y}`).join(' ');
-    const areaPoints = [
-        `${points[0].x},${height - padding.bottom}`,
-        ...points.map((point) => `${point.x},${point.y}`),
-        `${points[points.length - 1].x},${height - padding.bottom}`
-    ].join(' ');
+    const temperatures = hourlyData.map(item => toUnitNum(item.main.temp));
 
-    const yGuides = [0, 0.5, 1].map((step) => {
-        const y = padding.top + innerHeight * step;
-        return `<line x1="${padding.left}" y1="${y}" x2="${width - padding.right}" y2="${y}" class="graph-grid-line"></line>`;
-    }).join('');
+    const data = {
+        labels: labels,
+        datasets: [{
+            label: `Temperature (${unitLabel()})`,
+            data: temperatures,
+            borderColor: 'rgba(75, 192, 192, 1)',
+            backgroundColor: 'rgba(75, 192, 192, 0.2)',
+            fill: true,
+            tension: 0.4
+        }]
+    };
 
-    const labels = points.map((point) => `
-        <g transform="translate(${point.x}, ${point.y})">
-            <circle r="5" class="graph-point"></circle>
-            <text y="-14" text-anchor="middle" class="graph-point-label">${point.temp}${currentUnit === 'K' ? 'K' : DEGREE}</text>
-            <text y="${height - padding.bottom - point.y + 24}" text-anchor="middle" class="graph-axis-label">${point.label}</text>
-        </g>
-    `).join('');
+    const config = {
+        type: 'line',
+        data: data,
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    display: false
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: false,
+                    ticks: {
+                        callback: function(value) {
+                            return value + (currentUnit === 'K' ? 'K' : DEGREE);
+                        }
+                    }
+                }
+            }
+        }
+    };
 
-    forecastGraph.innerHTML = `
-        ${yGuides}
-        <polygon points="${areaPoints}" class="graph-area"></polygon>
-        <polyline points="${polylinePoints}" class="graph-line"></polyline>
-        ${labels}
-    `;
+    if (window.temperatureChart) {
+        window.temperatureChart.destroy();
+    }
+    window.temperatureChart = new Chart(temperatureChartCanvas, config);
 }
+
+function buildHourlyPoints(forecastList, timezoneOffsetSeconds, hoursAhead) {
+    if (!Array.isArray(forecastList) || forecastList.length === 0) return [];
+
+    const nowSeconds = Math.floor(Date.now() / 1000);
+    const endSeconds = nowSeconds + hoursAhead * 60 * 60;
+
+    // OpenWeather dt is in UTC seconds.
+    const points = forecastList
+        .slice()
+        .sort((a, b) => a.dt - b.dt)
+        .filter((item) => item?.dt >= nowSeconds - 3600 && item?.dt <= endSeconds);
+
+    // Keep it compact (3-hour steps => ~8 points for 24h)
+    return points.slice(0, 10).map((item) => {
+        const localDate = getShiftedDate(item.dt, timezoneOffsetSeconds);
+        return {
+            raw: item,
+            dt: item.dt,
+            timeLabel: localDate.toLocaleTimeString('en-US', { hour: 'numeric' }),
+            humidity: item.main?.humidity ?? null,
+            precipProb: item.pop ?? null,
+            precipAmount: item.rain?.['3h'] ?? null
+        };
+    });
+}
+
+function renderHumidityPrecipChart(hourlyPoints) {
+    if (!humidityPrecipChartCanvas || !humidityPrecipRange) return;
+
+    if (!hourlyPoints || hourlyPoints.length === 0) {
+        if (window.humidityPrecipChart) {
+            window.humidityPrecipChart.destroy();
+        }
+        humidityPrecipRange.textContent = '--';
+        return;
+    }
+
+    const metric = selectedHourlyMetric;
+    const labels = hourlyPoints.map(p => p.timeLabel);
+    const values = hourlyPoints.map(p => {
+        if (metric === 'humidity') {
+            return p.humidity || 0;
+        }
+        return (p.precipProb || 0) * 100;
+    });
+
+    const data = {
+        labels: labels,
+        datasets: [{
+            label: metric === 'humidity' ? 'Humidity (%)' : 'Precipitation Probability (%)',
+            data: values,
+            borderColor: metric === 'humidity' ? 'rgba(54, 162, 235, 1)' : 'rgba(255, 99, 132, 1)',
+            backgroundColor: metric === 'humidity' ? 'rgba(54, 162, 235, 0.2)' : 'rgba(255, 99, 132, 0.2)',
+            fill: true,
+            tension: 0.4
+        }]
+    };
+
+    const config = {
+        type: 'line',
+        data: data,
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    display: false
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    max: metric === 'humidity' ? 100 : 100,
+                    ticks: {
+                        callback: function(value) {
+                            return value + '%';
+                        }
+                    }
+                }
+            }
+        }
+    };
+
+    if (window.humidityPrecipChart) {
+        window.humidityPrecipChart.destroy();
+    }
+    window.humidityPrecipChart = new Chart(humidityPrecipChartCanvas, config);
+
+    // Update range label
+    const minV = Math.min(...values);
+    const maxV = Math.max(...values);
+    const suffix = metric === 'humidity' ? 'Humidity %' : 'Precip Probability %';
+    humidityPrecipRange.textContent = `${minV}% - ${maxV}% (${suffix})`;
+}
+
 function getWindDirection(deg) {
     if (deg === undefined || deg === null) return '';
     const directions = ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'];
