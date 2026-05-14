@@ -130,6 +130,16 @@ let debounceTimer;
 cityInput.addEventListener('input', (e) => {
     hideError();
     const query = e.target.value.trim();
+
+    // Real-time validation — warn immediately if digits are present
+    if (query.length > 0 && !isValidCityInput(query)) {
+        showError('City names cannot contain numbers. Please enter a valid city name.');
+        searchBtn.disabled = true;
+        clearBtn.classList.toggle('hidden', cityInput.value.length === 0);
+        hideSuggestions();
+        return;
+    }
+
     searchBtn.disabled = query.length === 0;
     clearBtn.classList.toggle('hidden', cityInput.value.length === 0);
 
@@ -225,9 +235,24 @@ window.addEventListener('DOMContentLoaded', () => {
 
 function handleSearch() {
     const city = cityInput.value.trim();
-    if (city) {
-        fetchWeatherData(city);
+    if (!city) return;
+
+    if (!isValidCityInput(city)) {
+        showError('Please enter a valid city name. City names cannot contain numbers.');
+        return;
     }
+
+    hideError();
+    fetchWeatherData(city);
+}
+
+/**
+ * Returns true if the query looks like a city name.
+ * City names may contain letters, spaces, hyphens, apostrophes and dots
+ * but must NOT contain digits.
+ */
+function isValidCityInput(query) {
+    return /^[^\d]+$/.test(query);
 }
 function getLocationErrorMessage(error) {
     if (!error) return 'Unable to get your location.';
