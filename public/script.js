@@ -57,10 +57,13 @@ const loading = document.getElementById('loading');
 const errorMessage = document.getElementById('error-message');
 const noDataMessage = document.getElementById('no-data-message');
 
-// Create suggestions dropdown
-const suggestionsContainer = document.createElement('div');
-suggestionsContainer.className = 'suggestions-container hidden';
-cityInput.parentNode.insertBefore(suggestionsContainer, cityInput.nextSibling);
+// Suggestions from new HTML (already in DOM)
+const suggestionsContainer = document.getElementById('suggestions-container') || (() => {
+    const d = document.createElement('div');
+    d.className = 'suggestions-container hidden';
+    cityInput.parentNode.insertBefore(d, cityInput.nextSibling);
+    return d;
+})();
 
 // Weather data elements
 const cityName = document.getElementById('city-name');
@@ -415,8 +418,22 @@ function updateUI(data) {
     pressure.textContent = `${data.main.pressure} hPa`;
     visibility.textContent = `${(data.visibility / 1000).toFixed(1)} km`;
 
-    sunrise.textContent = formatTimeAtOffset(data.sys.sunrise, data.timezone);
-    sunset.textContent = formatTimeAtOffset(data.sys.sunset, data.timezone);
+    const sunriseStr = formatTimeAtOffset(data.sys.sunrise, data.timezone);
+    const sunsetStr  = formatTimeAtOffset(data.sys.sunset,  data.timezone);
+    if (sunrise) sunrise.textContent = sunriseStr;
+    if (sunset)  sunset.textContent  = sunsetStr;
+    const srMetric = document.getElementById('sunrise-metric');
+    const ssMetric = document.getElementById('sunset-metric');
+    if (srMetric) srMetric.textContent = sunriseStr;
+    if (ssMetric) ssMetric.textContent = sunsetStr;
+
+    // last-updated timestamp
+    const lastUpdatedEl = document.getElementById('last-updated');
+    if (lastUpdatedEl) {
+        const now = new Date();
+        lastUpdatedEl.textContent = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }) + ', ' +
+            now.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    }
 
     updateSunPosition(data);
     updateDynamicBackground(data);
@@ -558,7 +575,7 @@ function updateWeatherTrends(trendData) {
     const warmestDay = trendData.reduce((warmest, day) => day.high > warmest.high ? day : warmest, trendData[0]);
     const coolestDay = trendData.reduce((coolest, day) => day.low < coolest.low ? day : coolest, trendData[0]);
 
-    trendsSummary.textContent = `${trendText} Warmest: ${warmestDay.dayLabel} at ${Math.round(warmestDay.high)}${DEGREE}C. Coolest: ${coolestDay.dayLabel} at ${Math.round(coolestDay.low)}${DEGREE}C.`;
+    trendsSummary.textContent = `${trendText} Warmest: ${warmestDay.dayLabel} at ${toUnit(warmestDay.high)}. Coolest: ${coolestDay.dayLabel} at ${toUnit(coolestDay.low)}.`;
     renderTrendStats(trendData);
     renderTrendChart(trendData);
 }
@@ -573,9 +590,9 @@ function renderTrendStats(trendData) {
                 <small>${day.dateLabel}</small>
             </div>
             <div class="trend-stat-values">
-                <span><strong>${Math.round(day.high)}${DEGREE}C</strong> high</span>
-                <span><strong>${Math.round(day.low)}${DEGREE}C</strong> low</span>
-                <span><strong>${Math.round(day.avg)}${DEGREE}C</strong> avg</span>
+                <span><strong>${toUnit(day.high)}</strong> high</span>
+                <span><strong>${toUnit(day.low)}</strong> low</span>
+                <span><strong>${toUnit(day.avg)}</strong> avg</span>
             </div>
         </div>
     `).join('');
@@ -647,16 +664,16 @@ function renderTrendChart(trendData) {
     const linePoints = points.map((point) => `${point.x},${point.y}`).join(' ');
     const gridLines = [0, 0.5, 1].map((step) => {
         const y = padding.top + innerHeight * step;
-        const value = Math.round(maxValue - range * step);
+        const value = maxValue - range * step;
         return `
             <line x1="${padding.left}" y1="${y}" x2="${width - padding.right}" y2="${y}" class="graph-grid-line"></line>
-            <text x="${padding.left - 12}" y="${y + 4}" text-anchor="end" class="graph-axis-label">${value}${DEGREE}</text>
+            <text x="${padding.left - 12}" y="${y + 4}" text-anchor="end" class="graph-axis-label">${toUnitNum(value)}${DEGREE}</text>
         `;
     }).join('');
     const labels = points.map((point) => `
         <g transform="translate(${point.x}, ${point.y})">
             <circle r="5" class="trend-line-point"></circle>
-            <text y="-18" text-anchor="middle" class="graph-point-label trend-value-label">${Math.round(point.value)}${DEGREE}</text>
+            <text y="-18" text-anchor="middle" class="graph-point-label trend-value-label">${toUnitNum(point.value)}${DEGREE}</text>
             <text y="${height - padding.bottom - point.y + 28}" text-anchor="middle" class="graph-axis-label">${point.dayLabel}</text>
         </g>
     `).join('');
@@ -674,7 +691,7 @@ function renderTrendChart(trendData) {
     }
 
     if (trendChartRange) {
-        trendChartRange.textContent = `${Math.round(Math.min(...values))}${DEGREE}C - ${Math.round(Math.max(...values))}${DEGREE}C`;
+        trendChartRange.textContent = `${toUnit(Math.min(...values))} — ${toUnit(Math.max(...values))}`;
     }
 }
 
@@ -884,6 +901,12 @@ function renderForecastGraph(chartData) {
     `).join('');
 
     forecastGraph.innerHTML = `
+        <defs>
+            <linearGradient id="areaGradPurple" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stop-color="#7b85fe" stop-opacity="0.55"/>
+                <stop offset="100%" stop-color="#7b85fe" stop-opacity="0.04"/>
+            </linearGradient>
+        </defs>
         ${yGuides}
         <polygon points="${areaPoints}" class="graph-area"></polygon>
         <polyline points="${polylinePoints}" class="graph-line"></polyline>
@@ -914,9 +937,9 @@ function hideWeather() {
 }
 
 function showError(message) {
-    if (message) {
-        errorMessage.querySelector('p').textContent = message;
-    }
+    const errText = document.getElementById('error-text');
+    if (message && errText) errText.textContent = message;
+    else if (message && errorMessage.querySelector('p')) errorMessage.querySelector('p').textContent = message;
     errorMessage.classList.remove('hidden');
 }
 
@@ -973,47 +996,31 @@ function updateAllTemperatureDisplays() {
 setInterval(renderSunPosition, 60000);
 
 
-// ============================================================
-// ✅ ADDED: Dark Mode Toggle — Issue #14
-// ============================================================
-(function initDarkMode() {
+// ── THEME TOGGLE (new design: dark by default, toggle adds .light) ──
+(function initTheme() {
     const STORAGE_KEY = 'weatherify-theme';
-    const DARK_CLASS  = 'dark-mode';
+    const toggleBtn   = document.getElementById('theme-toggle');
 
-    const toggleBtn = document.getElementById('theme-toggle');
-    const icon      = toggleBtn ? toggleBtn.querySelector('.toggle-icon') : null;
-    const label     = toggleBtn ? toggleBtn.querySelector('.toggle-label') : null;
-
-    function applyTheme(isDark) {
-        document.body.classList.toggle(DARK_CLASS, isDark);
-        if (icon)      icon.textContent  = isDark ? '☀️' : '🌙';
-        if (label)     label.textContent = isDark ? 'Light' : 'Dark';
-        if (toggleBtn) toggleBtn.setAttribute('aria-pressed', String(isDark));
+    function applyTheme(isLight) {
+        document.body.classList.toggle('light', isLight);
+        if (toggleBtn) toggleBtn.setAttribute('aria-pressed', String(isLight));
     }
 
     function getInitialPreference() {
         const saved = localStorage.getItem(STORAGE_KEY);
-        if (saved !== null) return saved === 'dark';
-        return window.matchMedia('(prefers-color-scheme: dark)').matches;
+        if (saved !== null) return saved === 'light';
+        return window.matchMedia('(prefers-color-scheme: light)').matches;
     }
 
-    // Apply before first paint to prevent flash
     applyTheme(getInitialPreference());
 
     if (toggleBtn) {
         toggleBtn.addEventListener('click', () => {
-            const isDark = !document.body.classList.contains(DARK_CLASS);
-            applyTheme(isDark);
-            localStorage.setItem(STORAGE_KEY, isDark ? 'dark' : 'light');
+            const isLight = !document.body.classList.contains('light');
+            applyTheme(isLight);
+            localStorage.setItem(STORAGE_KEY, isLight ? 'light' : 'dark');
         });
     }
-
-    // Follow OS preference changes only if user hasn't manually chosen
-    window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', (e) => {
-        if (localStorage.getItem(STORAGE_KEY) === null) {
-            applyTheme(e.matches);
-        }
-    });
 })();
 
 
