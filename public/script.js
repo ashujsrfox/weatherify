@@ -228,7 +228,6 @@ const trendStats = document.getElementById('trend-stats');
 const trendChartLabel = document.getElementById('trend-chart-label');
 const trendChartRange = document.getElementById('trend-chart-range');
 const trendControls = document.querySelector('.trend-controls');
-
 const historyDropdown = document.getElementById('history-dropdown');
 const favoriteList = document.getElementById('favorite-list');
 const recentList = document.getElementById('recent-list');
@@ -456,20 +455,6 @@ function setCurrentCity(data) {
     // Record as recent search (prevent duplicates via addRecentSearch)
     addRecentSearch({ query: currentCityQuery, label: currentCityLabel });
 }
-
-
-// Hourly metric toggle
-hourlyMetricControls.forEach((btn) => {
-    btn.addEventListener('click', () => {
-        selectedHourlyMetric = btn.dataset.hourlyMetric;
-        hourlyMetricControls.forEach((b) => b.classList.toggle('active', b === btn));
-        if (rawData.forecast) {
-            const hoursAhead = 24;
-            const hourlyPoints = buildHourlyPoints(rawData.forecast.list, rawData.forecast.city?.timezone || 0, hoursAhead);
-            renderHumidityPrecipChart(hourlyPoints);
-        }
-    });
-});
 
 
 // Unit toggle
