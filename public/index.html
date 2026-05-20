@@ -48,7 +48,6 @@
                     <button class="unit-btn" data-unit="K">K</button>
                 </div>
                 <div class="search-container">
-                    <div class="search-box" >
                     <div class="search-box">
                         <div class="search-input-wrap">
                             <input type="text" id="city-input" placeholder="Enter city name..." autocomplete="off">
@@ -116,9 +115,17 @@
                         <div class="location-info">
                             <div class="city-header-row">
                                 <h2 id="city-name">City Name</h2>
-                                <button id="favorite-btn" class="favorite-btn" type="button" aria-label="Toggle favorite" aria-pressed="false" title="Favorite">
-                                    <span class="favorite-icon" aria-hidden="true">☆</span>
-                                </button>
+                                <div class="city-header-actions">
+                                    <button id="share-btn" class="share-btn" type="button" aria-haspopup="true" aria-expanded="false">Share</button>
+                                    <button id="favorite-btn" class="favorite-btn" type="button" aria-label="Toggle favorite" aria-pressed="false" title="Favorite">
+                                        <span class="favorite-icon" aria-hidden="true">☆</span>
+                                    </button>
+                                </div>
+                            </div>
+                            <div id="share-menu" class="share-menu hidden" role="menu" aria-label="Share weather options">
+                                <button type="button" id="copy-link-btn" class="share-menu-item">Copy Link</button>
+                                <button type="button" id="copy-summary-btn" class="share-menu-item">Copy Summary</button>
+                                <span id="share-status-text" class="share-status-text" aria-live="polite"></span>
                             </div>
                             <p id="date">Date</p>
                         </div>

@@ -228,6 +228,12 @@ const trendChartLabel = document.getElementById('trend-chart-label');
 const trendChartRange = document.getElementById('trend-chart-range');
 const trendControls = document.querySelector('.trend-controls');
 
+const shareBtn = document.getElementById('share-btn');
+const shareMenu = document.getElementById('share-menu');
+const copyLinkBtn = document.getElementById('copy-link-btn');
+const copySummaryBtn = document.getElementById('copy-summary-btn');
+const shareStatusText = document.getElementById('share-status-text');
+
 const historyDropdown = document.getElementById('history-dropdown');
 const favoriteList = document.getElementById('favorite-list');
 const recentList = document.getElementById('recent-list');
@@ -451,9 +457,134 @@ function setCurrentCity(data) {
     currentCityLabel = `${data.name}, ${data.sys.country}`;
     currentCityQuery = `${data.name},${data.sys.country}`;
     updateFavoriteButton();
+    updateUrlParams(currentCityQuery, currentUnit);
 
     // Record as recent search (prevent duplicates via addRecentSearch)
     addRecentSearch({ query: currentCityQuery, label: currentCityLabel });
+}
+
+function updateUrlParams(city, units, replaceState = true) {
+    try {
+        const url = new URL(window.location.href);
+        if (city) {
+            url.searchParams.set('city', city);
+        } else {
+            url.searchParams.delete('city');
+        }
+        if (units) {
+            url.searchParams.set('units', units);
+        } else {
+            url.searchParams.delete('units');
+        }
+        if (replaceState) {
+            window.history.replaceState({}, '', url);
+        }
+    } catch {
+        // ignore invalid URL updates in older browsers
+    }
+}
+
+function setCurrentUnit(unit) {
+    if (!['C', 'F', 'K'].includes(unit)) return;
+    currentUnit = unit;
+    document.querySelectorAll('.unit-btn').forEach((btn) => {
+        btn.classList.toggle('active', btn.dataset.unit === unit);
+    });
+    initUnitDisplay();
+    updateUrlParams(currentCityQuery || undefined, currentUnit);
+    if (rawData.current) {
+        updateUI(rawData.current);
+        updateForecastUI(rawData.forecast);
+    }
+}
+
+function toggleShareMenu(forceState) {
+    if (!shareMenu || !shareBtn) return;
+    const isOpen = shareMenu.classList.contains('hidden');
+    const show = typeof forceState === 'boolean' ? forceState : isOpen;
+    shareMenu.classList.toggle('hidden', !show);
+    shareBtn.setAttribute('aria-expanded', String(show));
+    if (!show) {
+        showShareStatus('');
+    }
+}
+
+function showShareStatus(message) {
+    if (!shareStatusText) return;
+    shareStatusText.textContent = message;
+}
+
+async function copyTextToClipboard(text) {
+    if (!text) return false;
+    if (navigator.clipboard && typeof navigator.clipboard.writeText === 'function') {
+        try {
+            await navigator.clipboard.writeText(text);
+            return true;
+        } catch {
+            // fallback below
+        }
+    }
+
+    const textarea = document.createElement('textarea');
+    textarea.value = text;
+    textarea.setAttribute('readonly', '');
+    textarea.style.position = 'absolute';
+    textarea.style.left = '-9999px';
+    document.body.appendChild(textarea);
+    textarea.select();
+
+    let success = false;
+    try {
+        success = document.execCommand('copy');
+    } catch {
+        success = false;
+    }
+    document.body.removeChild(textarea);
+    return success;
+}
+
+function getShareableLink() {
+    const city = currentCityQuery || cityInput.value.trim();
+    if (!city) return window.location.href;
+    try {
+        const url = new URL(window.location.href);
+        url.searchParams.set('city', city);
+        url.searchParams.set('units', currentUnit);
+        return url.toString();
+    } catch {
+        return `${window.location.pathname}?city=${encodeURIComponent(city)}&units=${encodeURIComponent(currentUnit)}`;
+    }
+}
+
+function getShareSummary() {
+    if (!rawData.current) return '';
+    const description = rawData.current.weather?.[0]?.description || '';
+    const formattedDescription = description
+        .split(' ')
+        .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+        .join(' ');
+    const temperature = `${toUnitNum(rawData.current.main.temp)}${unitLabel()}`;
+    const humidityValue = rawData.current.main.humidity !== undefined ? `${rawData.current.main.humidity}%` : '--';
+    const cityLabel = currentCityLabel || `${rawData.current.name}, ${rawData.current.sys.country}`;
+    return `${cityLabel}: ${temperature}, Humidity ${humidityValue}, ${formattedDescription}`;
+}
+
+async function handleCopyLink() {
+    const link = getShareableLink();
+    const copied = await copyTextToClipboard(link);
+    showShareStatus(copied ? 'Link copied to clipboard!' : 'Unable to copy link.');
+    if (copied) setTimeout(() => toggleShareMenu(false), 900);
+}
+
+async function handleCopySummary() {
+    const summary = getShareSummary();
+    if (!summary) {
+        showShareStatus('Weather unavailable to share.');
+        return;
+    }
+    const copied = await copyTextToClipboard(summary);
+    showShareStatus(copied ? 'Summary copied to clipboard!' : 'Unable to copy summary.');
+    if (copied) setTimeout(() => toggleShareMenu(false), 900);
 }
 
 
@@ -472,19 +603,9 @@ hourlyMetricControls.forEach((btn) => {
 
 
 // Unit toggle
-document.querySelectorAll('.unit-btn').forEach(btn => {
-
+document.querySelectorAll('.unit-btn').forEach((btn) => {
     btn.addEventListener('click', () => {
-        currentUnit = btn.dataset.unit;
-        document.querySelectorAll('.unit-btn').forEach(b => b.classList.remove('active'));
-        btn.classList.add('active');
-        // Update any unit labels in the UI immediately
-        initUnitDisplay();
-
-        if (rawData.current) {
-            updateUI(rawData.current);
-            updateForecastUI(rawData.forecast);
-        }
+        setCurrentUnit(btn.dataset.unit);
     });
 });
 
@@ -502,6 +623,21 @@ if (locationBtn) {
         hideSuggestions();
         requestWeatherFromMyLocation();
     });
+}
+
+if (shareBtn) {
+    shareBtn.addEventListener('click', (event) => {
+        event.stopPropagation();
+        toggleShareMenu();
+    });
+}
+
+if (copyLinkBtn) {
+    copyLinkBtn.addEventListener('click', handleCopyLink);
+}
+
+if (copySummaryBtn) {
+    copySummaryBtn.addEventListener('click', handleCopySummary);
 }
 
 // Autocomplete functionality
@@ -530,13 +666,16 @@ clearBtn.addEventListener('click', (e) => {
     cityInput.focus();
 });
 
-// Hide suggestions and history when clicking outside search controls
+// Hide suggestions, history, and share menu when clicking outside search controls
 document.addEventListener('click', (e) => {
     if (!e.target.closest('.search-box')) {
         hideSuggestions();
     }
     if (!e.target.closest('.search-container')) {
         closeHistoryDropdown();
+    }
+    if (!e.target.closest('#share-menu') && !e.target.closest('#share-btn')) {
+        toggleShareMenu(false);
     }
 });
 
@@ -595,7 +734,7 @@ function hideSuggestions() {
     suggestionsContainer.classList.add('hidden');
 }
 
-// Initialize with default city
+// Initialize with default city or shared link
 window.addEventListener('DOMContentLoaded', () => {
     if ('serviceWorker' in navigator) {
         navigator.serviceWorker.register('/sw.js').catch((err) => {
@@ -603,7 +742,20 @@ window.addEventListener('DOMContentLoaded', () => {
         });
     }
     initHistory();
-    fetchWeatherData(DEFAULT_CITY);
+
+    const params = new URLSearchParams(window.location.search);
+    const sharedUnits = params.get('units')?.toUpperCase();
+    const sharedCity = params.get('city');
+
+    if (sharedUnits) {
+        setCurrentUnit(sharedUnits);
+    }
+
+    if (sharedCity) {
+        fetchWeatherData(sharedCity);
+    } else {
+        fetchWeatherData(DEFAULT_CITY);
+    }
 });
 
 function handleSearch() {
