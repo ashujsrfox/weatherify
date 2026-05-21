@@ -188,7 +188,6 @@ const locationBtn = document.getElementById('location-btn');
 const weatherContainer = document.getElementById('weather-container');
 const loading = document.getElementById('loading');
 const errorMessage = document.getElementById('error-message');
-const noDataMessage = document.getElementById('no-data-message');
 
 // Create suggestions dropdown
 const suggestionsContainer = document.createElement('div');
@@ -228,6 +227,13 @@ const trendStats = document.getElementById('trend-stats');
 const trendChartLabel = document.getElementById('trend-chart-label');
 const trendChartRange = document.getElementById('trend-chart-range');
 const trendControls = document.querySelector('.trend-controls');
+
+const shareBtn = document.getElementById('share-btn');
+const shareMenu = document.getElementById('share-menu');
+const copyLinkBtn = document.getElementById('copy-link-btn');
+const copySummaryBtn = document.getElementById('copy-summary-btn');
+const shareStatusText = document.getElementById('share-status-text');
+
 const historyDropdown = document.getElementById('history-dropdown');
 const favoriteList = document.getElementById('favorite-list');
 const recentList = document.getElementById('recent-list');
@@ -451,23 +457,155 @@ function setCurrentCity(data) {
     currentCityLabel = `${data.name}, ${data.sys.country}`;
     currentCityQuery = `${data.name},${data.sys.country}`;
     updateFavoriteButton();
+    updateUrlParams(currentCityQuery, currentUnit);
 
     // Record as recent search (prevent duplicates via addRecentSearch)
     addRecentSearch({ query: currentCityQuery, label: currentCityLabel });
 }
 
+function updateUrlParams(city, units, replaceState = true) {
+    try {
+        const url = new URL(window.location.href);
+        if (city) {
+            url.searchParams.set('city', city);
+        } else {
+            url.searchParams.delete('city');
+        }
+        if (units) {
+            url.searchParams.set('units', units);
+        } else {
+            url.searchParams.delete('units');
+        }
+        if (replaceState) {
+            window.history.replaceState({}, '', url);
+        }
+    } catch {
+        // ignore invalid URL updates in older browsers
+    }
+}
+
+function setCurrentUnit(unit) {
+    if (!['C', 'F', 'K'].includes(unit)) return;
+    currentUnit = unit;
+    document.querySelectorAll('.unit-btn').forEach((btn) => {
+        btn.classList.toggle('active', btn.dataset.unit === unit);
+    });
+    initUnitDisplay();
+    updateUrlParams(currentCityQuery || undefined, currentUnit);
+    if (rawData.current) {
+        updateUI(rawData.current);
+        updateForecastUI(rawData.forecast);
+    }
+}
+
+function toggleShareMenu(forceState) {
+    if (!shareMenu || !shareBtn) return;
+    const isOpen = shareMenu.classList.contains('hidden');
+    const show = typeof forceState === 'boolean' ? forceState : isOpen;
+    shareMenu.classList.toggle('hidden', !show);
+    shareBtn.setAttribute('aria-expanded', String(show));
+    if (!show) {
+        showShareStatus('');
+    }
+}
+
+function showShareStatus(message) {
+    if (!shareStatusText) return;
+    shareStatusText.textContent = message;
+}
+
+async function copyTextToClipboard(text) {
+    if (!text) return false;
+    if (navigator.clipboard && typeof navigator.clipboard.writeText === 'function') {
+        try {
+            await navigator.clipboard.writeText(text);
+            return true;
+        } catch {
+            // fallback below
+        }
+    }
+
+    const textarea = document.createElement('textarea');
+    textarea.value = text;
+    textarea.setAttribute('readonly', '');
+    textarea.style.position = 'absolute';
+    textarea.style.left = '-9999px';
+    document.body.appendChild(textarea);
+    textarea.select();
+
+    let success = false;
+    try {
+        success = document.execCommand('copy');
+    } catch {
+        success = false;
+    }
+    document.body.removeChild(textarea);
+    return success;
+}
+
+function getShareableLink() {
+    const city = currentCityQuery || cityInput.value.trim();
+    if (!city) return window.location.href;
+    try {
+        const url = new URL(window.location.href);
+        url.searchParams.set('city', city);
+        url.searchParams.set('units', currentUnit);
+        return url.toString();
+    } catch {
+        return `${window.location.pathname}?city=${encodeURIComponent(city)}&units=${encodeURIComponent(currentUnit)}`;
+    }
+}
+
+function getShareSummary() {
+    if (!rawData.current) return '';
+    const description = rawData.current.weather?.[0]?.description || '';
+    const formattedDescription = description
+        .split(' ')
+        .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+        .join(' ');
+    const temperature = `${toUnitNum(rawData.current.main.temp)}${unitLabel()}`;
+    const humidityValue = rawData.current.main.humidity !== undefined ? `${rawData.current.main.humidity}%` : '--';
+    const cityLabel = currentCityLabel || `${rawData.current.name}, ${rawData.current.sys.country}`;
+    return `${cityLabel}: ${temperature}, Humidity ${humidityValue}, ${formattedDescription}`;
+}
+
+async function handleCopyLink() {
+    const link = getShareableLink();
+    const copied = await copyTextToClipboard(link);
+    showShareStatus(copied ? 'Link copied to clipboard!' : 'Unable to copy link.');
+    if (copied) setTimeout(() => toggleShareMenu(false), 900);
+}
+
+async function handleCopySummary() {
+    const summary = getShareSummary();
+    if (!summary) {
+        showShareStatus('Weather unavailable to share.');
+        return;
+    }
+    const copied = await copyTextToClipboard(summary);
+    showShareStatus(copied ? 'Summary copied to clipboard!' : 'Unable to copy summary.');
+    if (copied) setTimeout(() => toggleShareMenu(false), 900);
+}
+
+
+// Hourly metric toggle
+hourlyMetricControls.forEach((btn) => {
+    btn.addEventListener('click', () => {
+        selectedHourlyMetric = btn.dataset.hourlyMetric;
+        hourlyMetricControls.forEach((b) => b.classList.toggle('active', b === btn));
+        if (rawData.forecast) {
+            const hoursAhead = 24;
+            const hourlyPoints = buildHourlyPoints(rawData.forecast.list, rawData.forecast.city?.timezone || 0, hoursAhead);
+            renderHumidityPrecipChart(hourlyPoints);
+        }
+    });
+});
+
 
 // Unit toggle
-document.querySelectorAll('.unit-btn').forEach(btn => {
-
+document.querySelectorAll('.unit-btn').forEach((btn) => {
     btn.addEventListener('click', () => {
-        currentUnit = btn.dataset.unit;
-        document.querySelectorAll('.unit-btn').forEach(b => b.classList.remove('active'));
-        btn.classList.add('active');
-        if (rawData.current) {
-            updateUI(rawData.current);
-            updateForecastUI(rawData.forecast);
-        }
+        setCurrentUnit(btn.dataset.unit);
     });
 });
 
@@ -485,6 +623,21 @@ if (locationBtn) {
         hideSuggestions();
         requestWeatherFromMyLocation();
     });
+}
+
+if (shareBtn) {
+    shareBtn.addEventListener('click', (event) => {
+        event.stopPropagation();
+        toggleShareMenu();
+    });
+}
+
+if (copyLinkBtn) {
+    copyLinkBtn.addEventListener('click', handleCopyLink);
+}
+
+if (copySummaryBtn) {
+    copySummaryBtn.addEventListener('click', handleCopySummary);
 }
 
 // Autocomplete functionality
@@ -513,13 +666,16 @@ clearBtn.addEventListener('click', (e) => {
     cityInput.focus();
 });
 
-// Hide suggestions and history when clicking outside search controls
+// Hide suggestions, history, and share menu when clicking outside search controls
 document.addEventListener('click', (e) => {
     if (!e.target.closest('.search-box')) {
         hideSuggestions();
     }
     if (!e.target.closest('.search-container')) {
         closeHistoryDropdown();
+    }
+    if (!e.target.closest('#share-menu') && !e.target.closest('#share-btn')) {
+        toggleShareMenu(false);
     }
 });
 
@@ -578,7 +734,7 @@ function hideSuggestions() {
     suggestionsContainer.classList.add('hidden');
 }
 
-// Initialize with default city
+// Initialize with default city or shared link
 window.addEventListener('DOMContentLoaded', () => {
     if ('serviceWorker' in navigator) {
         navigator.serviceWorker.register('/sw.js').catch((err) => {
@@ -586,7 +742,20 @@ window.addEventListener('DOMContentLoaded', () => {
         });
     }
     initHistory();
-    fetchWeatherData(DEFAULT_CITY);
+
+    const params = new URLSearchParams(window.location.search);
+    const sharedUnits = params.get('units')?.toUpperCase();
+    const sharedCity = params.get('city');
+
+    if (sharedUnits) {
+        setCurrentUnit(sharedUnits);
+    }
+
+    if (sharedCity) {
+        fetchWeatherData(sharedCity);
+    } else {
+        fetchWeatherData(DEFAULT_CITY);
+    }
 });
 
 function handleSearch() {
@@ -944,17 +1113,21 @@ function updateWeatherTrends(trendData) {
         return;
     }
 
+    // Convert canonical Kelvin values to the selected unit at render time
     const firstAverage = trendData[0].avg;
     const lastAverage = trendData[trendData.length - 1].avg;
-    const averageDelta = lastAverage - firstAverage;
+    const firstAverageNum = toUnitNum(firstAverage);
+    const lastAverageNum = toUnitNum(lastAverage);
+    const averageDelta = lastAverageNum - firstAverageNum;
     const trendText =
         averageDelta > 1.5 ? 'Temperatures rising over the next few days.' :
         averageDelta < -1.5 ? 'Cooling trend expected over the next few days.' :
         'Weather remaining stable over the next few days.';
+
     const warmestDay = trendData.reduce((warmest, day) => day.high > warmest.high ? day : warmest, trendData[0]);
     const coolestDay = trendData.reduce((coolest, day) => day.low < coolest.low ? day : coolest, trendData[0]);
 
-    trendsSummary.textContent = `${trendText} Warmest: ${warmestDay.dayLabel} at ${Math.round(warmestDay.high)}${DEGREE}C. Coolest: ${coolestDay.dayLabel} at ${Math.round(coolestDay.low)}${DEGREE}C.`;
+    trendsSummary.textContent = `${trendText} Warmest: ${warmestDay.dayLabel} at ${toUnitNum(warmestDay.high)}${unitLabel()}. Coolest: ${coolestDay.dayLabel} at ${toUnitNum(coolestDay.low)}${unitLabel()}.`;
     renderTrendStats(trendData);
     renderTrendChart(trendData);
 }
@@ -969,9 +1142,9 @@ function renderTrendStats(trendData) {
                 <small>${day.dateLabel}</small>
             </div>
             <div class="trend-stat-values">
-                <span><strong>${Math.round(day.high)}${DEGREE}C</strong> high</span>
-                <span><strong>${Math.round(day.low)}${DEGREE}C</strong> low</span>
-                <span><strong>${Math.round(day.avg)}${DEGREE}C</strong> avg</span>
+                <span><strong>${toUnitNum(day.high)}${unitLabel()}</strong> high</span>
+                <span><strong>${toUnitNum(day.low)}${unitLabel()}</strong> low</span>
+                <span><strong>${toUnitNum(day.avg)}${unitLabel()}</strong> avg</span>
             </div>
         </div>
     `).join('');
@@ -1009,9 +1182,10 @@ function renderTrendChart(trendData) {
     const padding = { top: 46, right: 42, bottom: 48, left: 54 };
     const innerWidth = width - padding.left - padding.right;
     const innerHeight = height - padding.top - padding.bottom;
-    const values = trendData.map((day) => day[metric]);
-    const lowValues = trendData.map((day) => day.low);
-    const highValues = trendData.map((day) => day.high);
+    // Convert canonical Kelvin temperatures to selected unit for plotting
+    const values = trendData.map((day) => toUnitNum(day[metric]));
+    const lowValues = trendData.map((day) => toUnitNum(day.low));
+    const highValues = trendData.map((day) => toUnitNum(day.high));
     const minValue = Math.floor(Math.min(...lowValues) - 1);
     const maxValue = Math.ceil(Math.max(...highValues) + 1);
     const range = Math.max(maxValue - minValue, 1);
@@ -1020,11 +1194,12 @@ function renderTrendChart(trendData) {
     const getY = (value) => padding.top + ((maxValue - value) / range) * innerHeight;
     const points = trendData.map((day, index) => {
         const x = padding.left + (index * innerWidth) / Math.max(trendData.length - 1, 1);
+        const val = toUnitNum(day[metric]);
         return {
             ...day,
             x,
-            y: getY(day[metric]),
-            value: day[metric]
+            y: getY(val),
+            value: val
         };
     });
 
@@ -1046,13 +1221,13 @@ function renderTrendChart(trendData) {
         const value = Math.round(maxValue - range * step);
         return `
             <line x1="${padding.left}" y1="${y}" x2="${width - padding.right}" y2="${y}" class="graph-grid-line"></line>
-            <text x="${padding.left - 12}" y="${y + 4}" text-anchor="end" class="graph-axis-label">${value}${DEGREE}</text>
+            <text x="${padding.left - 12}" y="${y + 4}" text-anchor="end" class="graph-axis-label">${value}${unitLabel()}</text>
         `;
     }).join('');
     const labels = points.map((point) => `
         <g transform="translate(${point.x}, ${point.y})">
             <circle r="5" class="trend-line-point"></circle>
-            <text y="-18" text-anchor="middle" class="graph-point-label trend-value-label">${Math.round(point.value)}${DEGREE}</text>
+            <text y="-18" text-anchor="middle" class="graph-point-label trend-value-label">${Math.round(point.value)}${unitLabel()}</text>
             <text y="${height - padding.bottom - point.y + 28}" text-anchor="middle" class="graph-axis-label">${point.dayLabel}</text>
         </g>
     `).join('');
@@ -1070,7 +1245,7 @@ function renderTrendChart(trendData) {
     }
 
     if (trendChartRange) {
-        trendChartRange.textContent = `${Math.round(Math.min(...values))}${DEGREE}C - ${Math.round(Math.max(...values))}${DEGREE}C`;
+        trendChartRange.textContent = `${Math.round(Math.min(...values))}${unitLabel()} - ${Math.round(Math.max(...values))}${unitLabel()}`;
     }
 }
 
@@ -1272,7 +1447,7 @@ function renderTemperatureChart(hourlyData) {
                     beginAtZero: false,
                     ticks: {
                         callback: function(value) {
-                            return value + (currentUnit === 'K' ? 'K' : DEGREE);
+                            return value + unitLabel();
                         }
                     }
                 }
@@ -1414,52 +1589,6 @@ function showError(message) {
 function hideError() {
     errorMessage.classList.add('hidden');
 }
-// ===== STATE MANAGEMENT & VISIBILITY FUNCTIONS =====
-function showWeather() {
-    weatherContainer.classList.remove('hidden');
-    if (noDataMessage) noDataMessage.classList.add('hidden');
-    loading.classList.add('hidden');
-}
-
-function hideWeather() {
-    weatherContainer.classList.add('hidden');
-    loading.classList.add('hidden');
-}
-
-function showNoDataMessage() {
-    weatherContainer.classList.add('hidden');
-    if (noDataMessage) noDataMessage.classList.remove('hidden');
-    loading.classList.add('hidden');
-}
-
-function showLoading() {
-    weatherContainer.classList.add('hidden');
-    if (noDataMessage) noDataMessage.classList.add('hidden');
-    loading.classList.remove('hidden');
-}
-
-function hideLoading() {
-    loading.classList.add('hidden');
-}
-
-// ===== GLOBAL UNIT UPDATE FUNCTION =====
-function updateAllTemperatureDisplays() {
-    // Update unit label globally
-    const unitElements = document.querySelectorAll('.unit');
-    unitElements.forEach(el => {
-        el.textContent = unitLabel();
-    });
-    
-    // Update all temperature-related elements if data exists
-    if (rawData.current) {
-        updateUI(rawData.current);
-    }
-    
-    // Update forecast display with new units
-    if (rawData.forecast) {
-        updateForecastUI(rawData.forecast);
-    }
-}
 
 setInterval(renderSunPosition, 60000);
 
@@ -1506,10 +1635,3 @@ setInterval(renderSunPosition, 60000);
         }
     });
 })();
-
-
-
-
-
-
-
