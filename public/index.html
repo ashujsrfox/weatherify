@@ -25,11 +25,11 @@
 
     <!-- Theme -->
     <meta name="theme-color" content="#0ea5e9" />
-    <link rel="manifest" href="/manifest.json">
     <link rel="stylesheet" href="style.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
 
@@ -48,29 +48,78 @@
                     <button class="unit-btn" data-unit="K">K</button>
                 </div>
                 <div class="search-container">
+                    <div class="search-box" >
                     <div class="search-box">
-                        <input type="text" id="city-input" placeholder="Enter city name..." autocomplete="off">
-                <div class="search-container" style="order: 2; flex-shrink: 0; display: flex; flex-direction: column; width: 100%; max-width: 500px;">
-                    <div class="search-box" style="width: 100%; max-width: none;">
                         <div class="search-input-wrap">
                             <input type="text" id="city-input" placeholder="Enter city name..." autocomplete="off">
                             <button type="button" id="clear-btn" class="clear-btn hidden" aria-label="Clear search">&times;</button>
                         </div>
-                        <button id="search-btn" disabled>
+                        <button id="search-btn" disabled aria-label="Search for city weather">
                             <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><path d="m21 21-4.3-4.3"></path></svg>
+                        </button>
+                        <button id="location-btn" type="button" class="location-btn" aria-label="Use my location for weather">
+                            <span class="location-icon" aria-hidden="true">📍</span>
+                            <span class="location-label" style="color: #21388d;">Use My Location</span>
                         </button>
                     </div>
                     <div id="error-message" class="hidden text-red-500 text-sm mt-2">
                         <p>City not found. Please check spelling and try again.</p>
                     </div>
+                    
+
+                    <div id="history-dropdown" class="history-dropdown" aria-label="Recent searches and favorites">
+                        <div class="history-panel-header">
+                            <h2>Saved Cities</h2>
+                            <p>Quickly reopen favorite cities or recent searches.</p>
+                        </div>
+                        <div class="history-dropdown-inner">
+                            <div class="history-section">
+                                <div class="history-section-title">Favorites</div>
+                                <div id="favorite-list" class="history-list"></div>
+                            </div>
+
+                            <div class="history-section">
+                                <div class="history-section-title">Recent</div>
+                                <div id="recent-list" class="history-list"></div>
+                            </div>
+
+                            <div class="history-actions">
+                                <button id="clear-history-btn" type="button" class="clear-history-btn hidden">Clear history</button>
+                            </div>
+                        </div>
+                    </div>
                 </div>
+
+            <div id="no-data-message" class="no-data-message">
+                <h2>Welcome to Weatherify ⛅</h2>
+                <p>Search for a city to view its weather forecast</p>
+            </div>
+
+            <div id="loading" class="skeleton-loader hidden">
+                <div class="weather-main">
+                    <div class="temperature-section">
+                        <div class="location-info">
+                            <div class="skeleton-text" style="width: 150px; height: 24px; margin-bottom: 8px;"></div>
+                            <div class="skeleton-text" style="width: 100px; height: 16px;"></div>
+                        </div>
+                        <div class="skeleton-card" style="width: 100px; height: 100px; margin: 20px auto;"></div>
+                        <div class="skeleton-text" style="width: 80px; height: 32px; margin: 10px auto;"></div>
+                    </div>
+                </div>
+            </div>
             </header>
+
 
             <main id="weather-container" class="hidden">
                 <div class="weather-main">
                     <div class="temperature-section">
                         <div class="location-info">
-                            <h2 id="city-name">City Name</h2>
+                            <div class="city-header-row">
+                                <h2 id="city-name">City Name</h2>
+                                <button id="favorite-btn" class="favorite-btn" type="button" aria-label="Toggle favorite" aria-pressed="false" title="Favorite">
+                                    <span class="favorite-icon" aria-hidden="true">☆</span>
+                                </button>
+                            </div>
                             <p id="date">Date</p>
                         </div>
                         <div class="weather-icon" id="weather-icon"></div>
@@ -147,6 +196,26 @@
                             <span class="detail-value" id="visibility">-- km</span>
                         </div>
                     </div>
+
+                    <div class="detail-card" id="aqi-card">
+                        <div class="detail-icon" aria-hidden="true">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M21 16V8a2 2 0 0 0-1-1.73L12 2 4 6.27A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73L12 22l8-4.27a2 2 0 0 0 1-1.73Z"></path>
+                                <path d="M12 22V12"></path>
+                                <path d="M21 8l-9 4-9-4"></path>
+                            </svg>
+                        </div>
+                        <div class="detail-info">
+                            <span class="detail-label">Air Quality (AQI)</span>
+                            <span class="detail-value" style="display:flex; align-items:center; gap:10px;">
+                                <span class="aqi-value" id="aqi-value">--</span>
+                                <span class="aqi-badge" id="aqi-badge">--</span>
+                            </span>
+                            <span class="aqi-pollutants" id="aqi-pollutants">Pollutants --</span>
+                            <span class="aqi-recommendation" id="aqi-recommendation">Recommendation --</span>
+                        </div>
+                    </div>
+
                     <div class="detail-card">
                         <div class="detail-icon">
                             <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 18a5 5 0 0 0-10 0"></path><line x1="12" y1="9" x2="12" y2="2"></line><line x1="4.22" y1="10.22" x2="5.64" y2="11.64"></line><line x1="1" y1="18" x2="3" y2="18"></line><line x1="21" y1="18" x2="23" y2="18"></line><line x1="18.36" y1="11.64" x2="19.78" y2="10.22"></line><line x1="23" y1="22" x2="1" y2="22"></line></svg>
@@ -177,6 +246,7 @@
 
                 </div>
 
+
                 <div class="forecast-section">
                     <div class="forecast-graph-card">
                         <div class="graph-header">
@@ -184,20 +254,36 @@
                             <span id="graph-range">--</span>
                         </div>
                         <div class="graph-wrapper">
-                            <svg id="forecast-graph" viewBox="0 0 640 240" preserveAspectRatio="none" aria-label="Temperature forecast line graph">
-                                <!-- Forecast graph is rendered by JavaScript -->
-                            </svg>
+                            <canvas id="temperature-chart" width="640" height="240" aria-label="Temperature forecast chart"></canvas>
                         </div>
                     </div>
+
+                    <div class="forecast-graph-card" style="padding-top: 18px;">
+                        <div class="graph-header">
+                            <span>Humidity & Precip (Next 24 Hours)</span>
+                            <span id="humidity-precip-range">--</span>
+                        </div>
+
+                        <div class="hourly-toggle-row" role="group" aria-label="Hourly humidity and precipitation display">
+                            <button type="button" class="hourly-toggle active" data-hourly-metric="humidity">Humidity</button>
+                            <button type="button" class="hourly-toggle" data-hourly-metric="precip">Precip</button>
+                        </div>
+
+                        <div class="graph-wrapper" style="height: 220px;">
+                            <canvas id="humidity-precip-chart" width="640" height="220" aria-label="Humidity and precipitation forecast chart"></canvas>
+                        </div>
+                    </div>
+
                     <div>
-                    <h3 class="forecast-title">5-Day Forecast</h3>
+                    <h3 class="forecast-title">24-Hour Forecast</h3>
                     <p class="forecast-subtitle" id="forecast-summary">Upcoming weather trend will appear here.</p>
                     
                     <div class="forecast-container" id="forecast-container">
-                        <!-- Forecast cards will be inserted here -->
+                        <!-- Hourly forecast cards will be inserted here -->
                     </div>
                     </div>
                 </div>
+
 
                 <section class="weather-trends-section" aria-labelledby="weather-trends-title">
                     <div class="trends-header">
@@ -241,6 +327,9 @@
         </div>
     </div>
 
-    <script src="script.js"></script>
+    <script src="script.js?v=1"></script>
 </body>
 </html>
+
+
+

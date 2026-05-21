@@ -5,7 +5,7 @@ const path = require('path');
 const rateLimit = require('express-rate-limit');
 
 const OPENWEATHER_API_KEY = process.env.OPENWEATHER_API_KEY;
-const PORT = Number(process.env.PORT) || 3000;
+const PORT = Number(process.env.PORT) || 5000;
 
 const app = express();
 
@@ -13,6 +13,7 @@ const app = express();
  * Rate limiter — 100 requests per 15 minutes per IP.
  * Applied to all /api/ routes to protect the OpenWeatherMap API key
  * from exhaustion by malicious actors or rogue scripts.
+ * *****
  */
 const apiLimiter = rateLimit({
     windowMs: 15 * 60 * 1000, // 15 minutes
@@ -68,6 +69,8 @@ async function proxyOpenWeather(basePath, req, res) {
 app.get('/api/weather', (req, res) => proxyOpenWeather('/data/2.5/weather', req, res));
 app.get('/api/forecast', (req, res) => proxyOpenWeather('/data/2.5/forecast', req, res));
 app.get('/api/geo', (req, res) => proxyOpenWeather('/geo/1.0/direct', req, res));
+app.get('/api/air-quality', (req, res) => proxyOpenWeather('/data/2.5/air_pollution', req, res));
+
 
 app.use(express.static(path.join(__dirname, 'public')));
 

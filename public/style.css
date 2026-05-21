@@ -158,6 +158,7 @@ h1 {
     width: 100%;
     max-width: none;
     margin-left: 0;
+    position: relative;
 }
 
 .theme-toggle {
@@ -276,6 +277,167 @@ h1 {
     z-index: 1000;
     animation: slideDown 0.3s ease-out;
     transition: background 0.4s ease;
+}
+
+.history-dropdown {
+    position: static;
+    margin-top: 18px;
+    background: #eef2ff;
+    border: 1px solid #c7d2fe;
+    border-radius: 22px;
+    box-shadow: 0 24px 60px rgba(15, 23, 42, 0.12);
+    padding: 20px;
+    width: 100%;
+    overflow: hidden;
+    animation: none;
+}
+
+.history-dropdown.hidden {
+    display: none;
+}
+
+.history-panel-header {
+    margin-bottom: 16px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid rgba(99, 102, 241, 0.15);
+}
+
+.history-panel-header h2 {
+    margin: 0;
+    font-size: 1.2rem;
+    font-weight: 700;
+    color: #1e293b;
+}
+
+.history-panel-header p {
+    margin: 8px 0 0;
+    color: #475569;
+    font-size: 0.95rem;
+    line-height: 1.45;
+}
+
+.history-empty {
+    padding: 18px;
+    border-radius: 16px;
+    background: #f8fafc;
+    color: #475569;
+    border: 1px dashed #cbd5e0;
+    text-align: center;
+}
+
+.history-empty p {
+    font-weight: 600;
+    margin-bottom: 6px;
+}
+
+.history-empty small {
+    color: #64748b;
+}
+
+.history-actions {
+    display: flex;
+    justify-content: flex-end;
+    padding-top: 8px;
+}
+
+.history-toggle-btn {
+    border: none;
+    background: #eef2ff;
+    color: #4f46e5;
+    border-radius: 14px;
+    padding: 0 14px;
+    min-width: 48px;
+    height: 48px;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.2s ease, transform 0.2s ease;
+}
+
+.history-toggle-btn:hover {
+    background: #e0e7ff;
+    transform: translateY(-1px);
+}
+
+.history-dropdown-inner {
+    display: grid;
+    gap: 14px;
+}
+
+.history-section {
+    display: grid;
+    gap: 10px;
+}
+
+.history-section-title {
+    font-size: 0.9rem;
+    font-weight: 700;
+    color: #334155;
+}
+
+.history-list {
+    display: grid;
+    gap: 8px;
+    max-height: 160px;
+    overflow-y: auto;
+    padding-right: 4px;
+}
+
+.history-button {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 12px 14px;
+    border-radius: 14px;
+    border: 1px solid #e2e8f0;
+    background: #f8fafc;
+    color: #0f172a;
+    font-size: 0.95rem;
+    text-align: left;
+    cursor: pointer;
+    transition: background 0.2s ease, transform 0.2s ease;
+}
+
+.history-button:hover {
+    transform: translateX(2px);
+    background: #e2e8f0;
+}
+
+.history-badge {
+    font-size: 0.9rem;
+    color: #ca8a04;
+}
+
+.clear-history-btn {
+    width: fit-content;
+    border: 1px solid #cbd5e0;
+    background: #ffffff;
+    color: #475569;
+    border-radius: 12px;
+    padding: 10px 16px;
+    cursor: pointer;
+    transition: background 0.2s ease, color 0.2s ease;
+}
+
+.clear-history-btn:hover {
+    background: #f8fafc;
+}
+
+.favorite-btn {
+    border: none;
+    background: transparent;
+    color: #f59e0b;
+    font-size: 1.6rem;
+    line-height: 1;
+    cursor: pointer;
+    transition: transform 0.2s ease;
+}
+
+.favorite-btn:hover {
+    transform: scale(1.1);
 }
 
 .suggestion-item {
@@ -564,6 +726,57 @@ h1 {
     text-align: center;
 }
 
+.aqi-value {
+    font-size: 1.2rem;
+    font-weight: 800;
+    color: #1f2937;
+}
+
+.aqi-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 5px 12px;
+    border-radius: 999px;
+    color: #ffffff;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    white-space: nowrap;
+}
+
+.aqi-1 {
+    background: #16a34a;
+}
+
+.aqi-2 {
+    background: #fbbf24;
+    color: #1f2937;
+}
+
+.aqi-3 {
+    background: #f97316;
+}
+
+.aqi-4 {
+    background: #dc2626;
+}
+
+.aqi-5 {
+    background: #9333ea;
+}
+
+.aqi-pollutants,
+.aqi-recommendation {
+    display: block;
+    font-size: 12px;
+    line-height: 1.5;
+    color: #475569;
+    margin-top: 8px;
+    text-align: center;
+}
+
 .detail-label {
     font-size: 11px;
     color: #718096;
@@ -587,6 +800,47 @@ h1 {
     flex-direction: column;
     gap: 18px;
 }
+
+.hourly-toggle-row {
+    display: flex;
+    gap: 8px;
+    margin: 0 0 12px 0;
+    flex-wrap: wrap;
+}
+
+.hourly-toggle {
+    border: none;
+    border-radius: 12px;
+    padding: 9px 14px;
+    background: #edf2f7;
+    color: #718096;
+    cursor: pointer;
+    font: inherit;
+    font-size: 13px;
+    font-weight: 700;
+    transition: all 0.2s ease;
+}
+
+.hourly-toggle:hover {
+    color: #4c51bf;
+    background: rgba(255, 255, 255, 0.72);
+}
+
+.hourly-toggle.active {
+    color: white;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    box-shadow: 0 6px 18px rgba(102, 126, 234, 0.25);
+}
+
+body.dark-mode .hourly-toggle {
+    background: rgba(30, 41, 59, 0.9);
+    color: #94a3b8;
+}
+
+body.dark-mode .hourly-toggle.active {
+    color: white;
+}
+
 
 .forecast-title {
     font-size: 24px;
@@ -634,10 +888,9 @@ h1 {
     height: 240px;
 }
 
-#forecast-graph {
+#temperature-chart {
     width: 100%;
     height: 100%;
-    overflow: visible;
 }
 
 .graph-grid-line {
@@ -998,6 +1251,7 @@ h1 {
 @keyframes popIn {
     0%   { opacity: 0; transform: scale(0); }
     100% { opacity: 1; transform: scale(1); }
+    
 }
 
 @keyframes drawLine {
@@ -1187,6 +1441,7 @@ h1 {
         line-height: 1.1;
     }
 
+    /* Stack the search controls on mobile so nothing gets pushed off-screen */
     .search-box {
         flex-direction: column;
         gap: 10px;
@@ -1203,9 +1458,19 @@ h1 {
         font-size: 15px;
     }
 
+    /* Force the location button to full-width and keep it visible */
+    #location-btn.location-btn {
+        width: 100%;
+        justify-content: center;
+        padding: 12px;
+        flex-shrink: 0;
+        color:#d5d9e8;
+    }
+
     #city-input {
         padding-right: 40px;
     }
+
 
     #weather-container {
         gap: 18px;
@@ -1645,7 +1910,27 @@ body.dark-mode .theme-toggle:hover {
     background: rgba(30, 41, 59, 0.9);
 }
 
+body.dark-mode .location-btn {
+    color: #e2e8f0;
+    border-color: rgba(102, 126, 234, 0.45);
+    background: linear-gradient(135deg, rgba(102, 126, 234, 0.18) 0%, rgba(118, 75, 162, 0.18) 100%);
+    box-shadow: 0 4px 15px rgba(102, 126, 234, 0.18);
+}
+
+body.dark-mode .location-btn:hover {
+    border-color: rgba(102, 126, 234, 0.85);
+}
+
+body.dark-mode .location-label {
+    color: #e2e8f0;
+}
+
+body.dark-mode .location-icon {
+    color: #a5b4fc;
+}
+
 body.dark-mode .spinner {
+
     border-color: rgba(100, 116, 139, 0.3);
     border-top-color: #667eea;
 }
@@ -1690,6 +1975,68 @@ body.dark-mode .loading p {
     box-shadow: none;
     background: #cbd5e0;
 }
+
+/* Use My Location Button */
+.location-btn {
+    background: linear-gradient(135deg, rgba(102, 126, 234, 0.12) 0%, rgba(118, 75, 162, 0.12) 100%);
+    border: 1.5px solid rgba(102, 126, 234, 0.35);
+    border-radius: 14px;
+    padding: 14px 16px;
+    cursor: pointer;
+    color: #2d3748;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-weight: 700;
+    white-space: nowrap;
+    flex-shrink: 0;
+    box-shadow: 0 4px 15px rgba(102, 126, 234, 0.10);
+}
+
+.location-btn:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 10px 25px rgba(102, 126, 234, 0.25);
+    border-color: rgba(102, 126, 234, 0.65);
+}
+
+.location-btn:active {
+    transform: translateY(-1px);
+}
+
+.location-btn:focus-visible {
+    outline: 2px solid #667eea;
+    outline-offset: 2px;
+}
+
+.location-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
+}
+
+.location-icon {
+    font-size: 18px;
+    line-height: 1;
+}
+
+.location-label {
+    font-size: 14px;
+}
+
+@media screen and (max-width: 600px) {
+    .location-btn {
+        width: 100%;
+        justify-content: center;
+        padding: 12px;
+    }
+
+    .location-label {
+        font-size: 13px;
+    }
+}
+
 
 .loading {
     position: fixed;
