@@ -25,8 +25,9 @@
 
     <!-- Theme -->
     <meta name="theme-color" content="#0ea5e9" />
-    <link rel="stylesheet" href="style.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
+    <script>/* Prevent theme flash: apply saved theme before paint */(function(){try{var k='weatherify-theme';var s=localStorage.getItem(k);if(s===null){s=window.matchMedia&&window.matchMedia('(prefers-color-scheme: dark)').matches? 'dark':'light';}if(s==='dark'){document.documentElement.classList.add('dark-mode');} }catch(e){} })();</script>
+    <link rel="stylesheet" href="style.css">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -48,7 +49,7 @@
                     <button class="unit-btn" data-unit="K">K</button>
                 </div>
                 <div class="search-container">
-                    <div class="search-box" >
+                    
                     <div class="search-box">
                         <div class="search-input-wrap">
                             <input type="text" id="city-input" placeholder="Enter city name..." autocomplete="off">
@@ -59,7 +60,7 @@
                         </button>
                         <button id="location-btn" type="button" class="location-btn" aria-label="Use my location for weather">
                             <span class="location-icon" aria-hidden="true">📍</span>
-                            <span class="location-label" style="color: #21388d;">Use My Location</span>
+                            <span class="location-label">Use My Location</span>
                         </button>
                     </div>
                     <div id="error-message" class="hidden text-red-500 text-sm mt-2">
@@ -88,7 +89,7 @@
                             </div>
                         </div>
                     </div>
-                </div>
+                
 
             <div id="no-data-message" class="no-data-message">
                 <h2>Welcome to Weatherify ⛅</h2>
@@ -116,9 +117,17 @@
                         <div class="location-info">
                             <div class="city-header-row">
                                 <h2 id="city-name">City Name</h2>
-                                <button id="favorite-btn" class="favorite-btn" type="button" aria-label="Toggle favorite" aria-pressed="false" title="Favorite">
-                                    <span class="favorite-icon" aria-hidden="true">☆</span>
-                                </button>
+                                <div class="city-header-actions">
+                                    <button id="share-btn" class="share-btn" type="button" aria-haspopup="true" aria-expanded="false">Share</button>
+                                    <button id="favorite-btn" class="favorite-btn" type="button" aria-label="Toggle favorite" aria-pressed="false" title="Favorite">
+                                        <span class="favorite-icon" aria-hidden="true">☆</span>
+                                    </button>
+                                </div>
+                            </div>
+                            <div id="share-menu" class="share-menu hidden" role="menu" aria-label="Share weather options">
+                                <button type="button" id="copy-link-btn" class="share-menu-item">Copy Link</button>
+                                <button type="button" id="copy-summary-btn" class="share-menu-item">Copy Summary</button>
+                                <span id="share-status-text" class="share-status-text" aria-live="polite"></span>
                             </div>
                             <p id="date">Date</p>
                         </div>
@@ -318,7 +327,7 @@
                 </section>
             </main>
 
-            <div id="loading" class="loading hidden">
+            <div id="spinner-loading" class="loading hidden">
                 <div class="spinner"></div>
                 <p>Loading weather data...</p>
             </div>
