@@ -2239,3 +2239,32 @@ body.dark-mode .feels-like-main {
     color: #94a3b8;
 }
 
+body {
+    transition: background 0.5s ease-in-out;
+}
+
+
+body.weather-clear {
+    background: linear-gradient(135deg, #f39c12, #f1c40f) !important;
+}
+
+body.weather-clouds {
+    background: linear-gradient(135deg, #bdc3c7, #2c3e50) !important;
+}
+
+body.weather-rain {
+    background: linear-gradient(135deg, #1f4068, #162447) !important;
+}
+
+body.weather-snow {
+    background: linear-gradient(135deg, #e3f2fd, #ffffff) !important;
+}
+
+body.weather-thunderstorm {
+    background: linear-gradient(135deg, #4a148c, #1a0633) !important;
+}
+
+body { transition: background 0.5s ease-in-out; }
+body.weather-clear { background: linear-gradient(135deg, #f39c12, #f1c40f) !important; }
+body.weather-clouds { background: linear-gradient(135deg, #bdc3c7, #2c3e50) !important; }
+body.weather-rain { background: linear-gradient(135deg, #1f4068, #162447) !important; }

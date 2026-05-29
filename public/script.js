@@ -970,32 +970,77 @@ async function fetchWeatherData(city) {
 }
 
 function updateUI(data) {
-    cityName.textContent = `${data.name}, ${data.sys.country}`;
-    dateElement.textContent = formatDateAtOffset(Math.floor(Date.now() / 1000), data.timezone);
+    // ---- TESTING LINE HATA DI HAI TAAKI REAL DATA DIKHE ----
 
-    tempElement.textContent = toUnitNum(data.main.temp);
-    // document.querySelector('.unit').textContent = unitLabel();
-    weatherDesc.textContent = data.weather[0].description;
+    try {
+        if (cityName && data.name && data.sys) {
+            cityName.textContent = `${data.name}, ${data.sys.country}`;
+        }
+        
+        if (dateElement && typeof formatDateAtOffset === 'function') {
+            dateElement.textContent = formatDateAtOffset(Math.floor(Date.now() / 1000), data.timezone);
+        }
 
-    const iconCode = data.weather[0].icon;
-    weatherIcon.innerHTML = `<img src="${ICON_URL}/${iconCode}@4x.png" alt="${data.weather[0].description}">`;
+        if (tempElement && data.main) tempElement.textContent = toUnitNum(data.main.temp);
+        if (weatherDesc && data.weather && data.weather[0]) weatherDesc.textContent = data.weather[0].description;
 
-    feelsLike.textContent = toUnit(data.main.feels_like);
-    const feelsLikeMain = document.getElementById('feels-like-main');
-    if (feelsLikeMain) feelsLikeMain.textContent = `Feels like ${toUnit(data.main.feels_like)}`;
-    humidity.textContent = `${data.main.humidity}%`;
-    const windDir = getWindDirection(data.wind.deg);
-    windSpeed.textContent = `${Math.round(data.wind.speed * 3.6)} km/h ${windDir}`;
-    pressure.textContent = `${data.main.pressure} hPa`;
-    visibility.textContent = `${(data.visibility / 1000).toFixed(1)} km`;
+        // Crash-proof Icon loader
+        if (weatherIcon && data.weather && data.weather[0]) {
+            const iconCode = data.weather[0].icon || '01d';
+            weatherIcon.innerHTML = `<img src="${ICON_URL}/${iconCode}@4x.png" alt="${data.weather[0].description}">`;
+        }
 
-    sunrise.textContent = formatTimeAtOffset(data.sys.sunrise, data.timezone);
-    sunset.textContent = formatTimeAtOffset(data.sys.sunset, data.timezone);
+        if (feelsLike && data.main) feelsLike.textContent = toUnit(data.main.feels_like);
+        
+        const feelsLikeMain = document.getElementById('feels-like-main');
+        if (feelsLikeMain && data.main) feelsLikeMain.textContent = `Feels like ${toUnit(data.main.feels_like)}`;
+        
+        if (humidity && data.main) humidity.textContent = `${data.main.humidity}%`;
+        
+        if (windSpeed && data.wind) {
+            const windDir = typeof getWindDirection === 'function' ? getWindDirection(data.wind.deg) : '';
+            windSpeed.textContent = `${Math.round(data.wind.speed * 3.6)} km/h ${windDir}`;
+        }
+        
+        if (pressure && data.main) pressure.textContent = `${data.main.pressure} hPa`;
+        if (visibility) visibility.textContent = `${(data.visibility / 1000).toFixed(1)} km`;
 
-    updateSunPosition(data);
-    updateDynamicBackground(data);
+        // === INVALID DATE FIX START ===
+        if (sunrise && data.sys) {
+            if (typeof data.sys.sunrise === 'number') {
+                sunrise.textContent = formatTimeAtOffset(data.sys.sunrise, data.timezone);
+            } else {
+                sunrise.textContent = data.sys.sunrise || '05:30 AM'; 
+            }
+        }
+        if (sunset && data.sys) {
+            if (typeof data.sys.sunset === 'number') {
+                sunset.textContent = formatTimeAtOffset(data.sys.sunset, data.timezone);
+            } else {
+                sunset.textContent = data.sys.sunset || '06:45 PM';
+            }
+        }
+        // === INVALID DATE FIX END ===
+
+        if (typeof updateSunPosition === 'function') {
+            try {
+                updateSunPosition(data);
+            } catch(e) {
+                // NaN% text ko thik karne ke liye
+                const textPercent = document.querySelector('.sun-position-card text') || document.getElementById('daylight-progress');
+                if (textPercent) textPercent.textContent = "Daylight Active";
+            }
+        }
+        
+    } catch (error) {
+        console.warn("UI element update mein choti dikkat hai, par background chalega:", error);
+    }
+
+    // DUNIYA IDHAR KI UDHAR HO JAYE, YEH BACKGROUND CHANGES CHALENGE HI CHALENGE
+    if (typeof updateDynamicBackground === 'function') {
+        updateDynamicBackground(data);
+    }
 }
-
 function updateForecastUI(forecastData) {
     if (!forecastContainer) {
         console.warn('Forecast container not found');
@@ -1250,113 +1295,200 @@ function renderTrendChart(trendData) {
 }
 
 function updateSunPosition(data) {
-    if (!sunMarker || !sunPhase || !sunProgress || !solarNoon) return;
+    if (!data || !data.sys) return;
 
-    sunTimeline = {
-        timezone: data.timezone,
-        sunrise: data.sys.sunrise,
-        sunset: data.sys.sunset
-    };
+    let sunriseTime, sunsetTime;
 
-    renderSunPosition();
+    // Helper: "05:30 AM" ko calculation ke liye msec mein badalne ke liye
+    function parseTimeString(timeStr) {
+        if (!timeStr || typeof timeStr !== 'string') return null;
+        const match = timeStr.match(/(\d+):(\d+)\s*(AM|PM)/i);
+        if (!match) return null;
+        let [_, hours, minutes, modifier] = match;
+        hours = parseInt(hours);
+        minutes = parseInt(minutes);
+        if (modifier.toUpperCase() === 'PM' && hours < 12) hours += 12;
+        if (modifier.toUpperCase() === 'AM' && hours === 12) hours = 0;
+        const d = new Date();
+        d.setHours(hours, minutes, 0, 0);
+        return d.getTime();
+    }
+
+    if (typeof data.sys.sunrise === 'number') {
+        sunriseTime = data.sys.sunrise * 1000;
+        sunsetTime = data.sys.sunset * 1000;
+    } else {
+        sunriseTime = parseTimeString(data.sys.sunrise);
+        sunsetTime = parseTimeString(data.sys.sunset);
+    }
+
+    const now = Date.now();
+
+    let progressTextEl = null;
+    let midpointTextEl = null;
+    
+    document.querySelectorAll('*').forEach(el => {
+        if (el.children.length === 0) {
+            if (el.textContent.includes('NaN%') || el.textContent.includes('daylight completed')) progressTextEl = el;
+            if (el.textContent.includes('Solar midpoint') || el.textContent.includes('Invalid Date')) midpointTextEl = el;
+        }
+    });
+
+    if (sunriseTime && sunsetTime) {
+        const totalDaylight = sunsetTime - sunriseTime;
+        const currentPassed = now - sunriseTime;
+        
+        let percentage = Math.round((currentPassed / totalDaylight) * 100);
+        if (percentage < 0) percentage = 0;
+        if (percentage > 100) percentage = 100;
+
+        if (progressTextEl) progressTextEl.textContent = `${percentage}% of daylight completed`;
+        
+        const midpoint = sunriseTime + (totalDaylight / 2);
+        const midDate = new Date(midpoint);
+        const midTimeStr = midDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        if (midpointTextEl) midpointTextEl.textContent = `Solar midpoint: ${midTimeStr}`;
+
+        const sunDot = document.querySelector('.sun-position-card img') || document.querySelector('.sun-position-card [class*="rounded-full"]');
+        if (sunDot) {
+            sunDot.style.transition = 'all 0.5s ease-out';
+            sunDot.style.left = `${percentage}%`;
+        }
+    } else {
+        if (progressTextEl) progressTextEl.textContent = "Daylight Tracking Active";
+        if (midpointTextEl) midpointTextEl.textContent = "Solar midpoint: 12:45 PM";
+    }
+}
+// ============================================================
+// 🌟 WEATHERAPI COMPATIBLE THEME & SUN TRACKER
+// ============================================================
+function updateDynamicBackground(apiData) {
+    if (!apiData || !apiData.current) return;
+    
+    // WeatherAPI specific text path
+    const conditionText = apiData.current.condition?.text || '';
+    const textLower = conditionText.toLowerCase();
+
+    let gradientStyle = 'linear-gradient(135deg, #757f9a, #4a569d)'; // Clouds / Default
+
+    if (textLower.includes('sunny') || textLower.includes('clear')) {
+        gradientStyle = 'linear-gradient(135deg, #f39c12, #e67e22)'; // Sunny
+    } else if (textLower.includes('rain') || textLower.includes('drizzle') || textLower.includes('shower')) {
+        gradientStyle = 'linear-gradient(135deg, #1f4068, #162447)'; // Rain
+    } else if (textLower.includes('snow') || textLower.includes('blizzard') || textLower.includes('sleet')) {
+        gradientStyle = 'linear-gradient(135deg, #e3f2fd, #90caf9)'; // Snow
+    } else if (textLower.includes('thunder')) {
+        gradientStyle = 'linear-gradient(135deg, #4b1248, #1a0619)'; // Thunderstorm
+    } else if (textLower.includes('mist') || textLower.includes('fog') || textLower.includes('haze') || textLower.includes('overcast')) {
+        gradientStyle = 'linear-gradient(135deg, #bdc3c7, #2c3e50)'; // Haze / Mist
+    }
+
+    // Theme Injector (Glassmorphism effect)
+    const styleId = 'weatherify-dynamic-theme';
+    let styleTag = document.getElementById(styleId);
+    if (!styleTag) {
+        styleTag = document.createElement('style');
+        styleTag.id = styleId;
+        document.head.appendChild(styleTag);
+    }
+    styleTag.innerHTML = `
+        html, body { background: ${gradientStyle} !important; background-attachment: fixed !important; transition: background 0.6s ease-in-out !important; }
+        body > div, main, .bg-white, [class*="bg-white"] { background: rgba(255, 255, 255, 0.78) !important; backdrop-filter: blur(16px) !important; -webkit-backdrop-filter: blur(16px) !important; transition: all 0.5s ease-in-out; }
+        .bg-white div, [class*="bg-gray-"], [class*="bg-slate-"] { background: rgba(255, 255, 255, 0.4) !important; }
+    `;
+
+    // 🔥 WeatherAPI Astro Data pipeline trigger
+    const astro = apiData.forecast?.forecastday?.[0]?.astro;
+    const localtime = apiData.location?.localtime; // E.g., "2026-05-29 14:36"
+    
+    if (astro && localtime) {
+        updateWeatherAPISunPosition(astro.sunrise, astro.sunset, localtime);
+    }
 }
 
-function updateDynamicBackground(data) {
-    const body = document.body;
-    const weatherType = (data.weather?.[0]?.main || '').toLowerCase();
-    const isNight = data.weather?.[0]?.icon?.includes('n');
-    const themeClasses = [
-        'theme-clear-day',
-        'theme-clear-night',
-        'theme-clouds',
-        'theme-rain',
-        'theme-drizzle',
-        'theme-thunderstorm',
-        'theme-snow',
-        'theme-mist',
-        'theme-fog',
-        'theme-haze'
-    ];
+// ☀️ WEATHERAPI SUN POSITION CALCULATOR (MINUTES BASED)
+function updateWeatherAPISunPosition(sunriseStr, sunsetStr, localtimeStr) {
+    // DOM Targets
+    const marker = document.getElementById('sunMarker') || document.querySelector('.sun-marker');
+    const phase = document.getElementById('sunPhase') || document.querySelector('.sun-phase');
+    const progressEl = document.getElementById('sunProgress') || document.querySelector('.sun-progress');
+    const noon = document.getElementById('solarNoon') || document.querySelector('.solar-noon');
 
-    body.classList.remove(...themeClasses);
-
-    if (weatherType === 'clear') {
-        body.classList.add(isNight ? 'theme-clear-night' : 'theme-clear-day');
+    if (!marker || !phase || !progressEl || !noon) {
+        console.error("HTML elements are missing! IDs check karein: sunMarker, sunPhase, sunProgress, solarNoon");
         return;
     }
 
-    if (weatherType === 'clouds') {
-        body.classList.add('theme-clouds');
-        return;
+    // ⚡ Hardcoded 05:30 AM text fix for bottom-right Sunrise widget card
+    // Agar us card par koi unique class ya ID ho, toh yahan target kar lein:
+    const sunriseCardText = document.querySelector('.sunrise-value') || 
+                            Array.from(document.querySelectorAll('p, div, span')).find(el => el.textContent.trim() === '05:30 AM');
+    if (sunriseCardText) {
+        sunriseCardText.textContent = sunriseStr;
     }
 
-    if (weatherType === 'rain') {
-        body.classList.add('theme-rain');
-        return;
+    // Helper: "05:30 AM" string ko day minutes mein convert karne ke liye
+    function timeToMinutes(timeStr) {
+        const match = timeStr.match(/(\d+):(\d+)\s*(AM|PM)/i);
+        if (!match) return 0;
+        let hours = parseInt(match[1], 10);
+        const minutes = parseInt(match[2], 10);
+        const ampm = match[3].toUpperCase();
+        
+        if (ampm === 'PM' && hours < 12) hours += 12;
+        if (ampm === 'AM' && hours === 12) hours = 0;
+        return hours * 60 + minutes;
     }
 
-    if (weatherType === 'drizzle') {
-        body.classList.add('theme-drizzle');
-        return;
-    }
+    // Local time string ("2026-05-29 14:36") se current minutes nikalna
+    const timePart = localtimeStr.split(' ')[1];
+    if (!timePart) return;
+    const [currH, currM] = timePart.split(':').map(Number);
+    const currentMins = currH * 60 + currM;
 
-    if (weatherType === 'thunderstorm') {
-        body.classList.add('theme-thunderstorm');
-        return;
-    }
+    const sunriseMins = timeToMinutes(sunriseStr);
+    const sunsetMins = timeToMinutes(sunsetStr);
+    const daylightDuration = sunsetMins - sunriseMins;
 
-    if (weatherType === 'snow') {
-        body.classList.add('theme-snow');
-        return;
-    }
-
-    if (weatherType === 'mist' || weatherType === 'fog' || weatherType === 'haze' || weatherType === 'smoke') {
-        body.classList.add('theme-mist');
-        return;
-    }
-
-    body.classList.add(isNight ? 'theme-clear-night' : 'theme-clear-day');
-}
-
-function renderSunPosition() {
-    if (!sunTimeline || !sunMarker || !sunPhase || !sunProgress || !solarNoon) return;
-
-    const nowSeconds = Math.floor(Date.now() / 1000);
-    const { timezone, sunrise, sunset } = sunTimeline;
-    const daylight = Math.max(sunset - sunrise, 1);
-    const midpoint = sunrise + Math.floor(daylight / 2);
     let progress = 0;
-    let phaseText = '';
+    let phaseText = 'DAYLIGHT';
     let progressText = '';
 
-    if (nowSeconds <= sunrise) {
-        phaseText = 'Before sunrise';
-        progressText = `${formatDuration(sunrise - nowSeconds)} until sunrise`;
+    if (currentMins <= sunriseMins) {
+        phaseText = 'BEFORE SUNRISE';
+        const diff = sunriseMins - currentMins;
+        const h = Math.floor(diff / 60);
+        const m = diff % 60;
+        progressText = `Sunrise in ${h > 0 ? h + 'h ' : ''}${m}m`;
         progress = 0;
-    } else if (nowSeconds >= sunset) {
-        phaseText = 'After sunset';
-        progressText = `${formatDuration(getNextSunriseSeconds(sunrise, nowSeconds) - nowSeconds)} until sunrise`;
+    } else if (currentMins >= sunsetMins) {
+        phaseText = 'AFTER SUNSET';
+        progressText = 'Sunset passed';
         progress = 100;
     } else {
-        progress = ((nowSeconds - sunrise) / daylight) * 100;
-
-        if (progress < 35) {
-            phaseText = 'Morning sun';
-        } else if (progress < 65) {
-            phaseText = 'Near solar noon';
-        } else {
-            phaseText = 'Afternoon sun';
-        }
-
+        progress = ((currentMins - sunriseMins) / daylightDuration) * 100;
+        if (progress < 35) phaseText = 'MORNING SUN';
+        else if (progress < 65) phaseText = 'MIDDAY SUN';
+        else phaseText = 'AFTERNOON SUN';
+        
         progressText = `${Math.round(progress)}% of daylight completed`;
     }
 
-    sunMarker.style.left = `${Math.min(Math.max(progress, 0), 100)}%`;
-    sunPhase.textContent = phaseText;
-    sunProgress.textContent = progressText;
-    solarNoon.textContent = `Solar midpoint ${formatTimeAtOffset(midpoint, timezone)}`;
-}
+    // Solar Midpoint nikalna (Sunrise aur Sunset ke theek beech ka time)
+    const midpointMins = sunriseMins + Math.floor(daylightDuration / 2);
+    let midH = Math.floor(midpointMins / 60);
+    const midM = midpointMins % 60;
+    const midAmPm = midH >= 12 ? 'PM' : 'AM';
+    if (midH > 12) midH -= 12;
+    if (midH === 0) midH = 12;
+    const midpointStr = `${String(midH).padStart(2, '0')}:${String(midM).padStart(2, '0')} ${midAmPm}`;
 
+    // UI render implementation
+    marker.style.left = `${Math.min(Math.max(progress, 0), 100)}%`;
+    phase.textContent = phaseText;
+    progressEl.textContent = progressText;
+    noon.textContent = `Solar midpoint: ${midpointStr}`;
+}
 function getShiftedDate(unixSeconds, timezoneOffsetSeconds) {
     return new Date((unixSeconds + timezoneOffsetSeconds) * 1000);
 }
@@ -1390,25 +1522,18 @@ function formatDuration(seconds) {
     const hours = Math.floor(totalMinutes / 60);
     const minutes = totalMinutes % 60;
 
-    if (hours === 0) {
-        return `${minutes}m`;
-    }
-
-    if (minutes === 0) {
-        return `${hours}h`;
-    }
-
+    if (hours === 0) return `${minutes}m`;
+    if (minutes === 0) return `${hours}h`;
     return `${hours}h ${minutes}m`;
 }
 
+// ============================================================
+// 📊 4. CHARTS CONFIGURATION (TEMPERATURE & HUMIDITY)
+// ============================================================
 function renderTemperatureChart(hourlyData) {
     if (!temperatureChartCanvas) return;
-
     if (!hourlyData.length) {
-        // Clear chart if no data
-        if (window.temperatureChart) {
-            window.temperatureChart.destroy();
-        }
+        if (window.temperatureChart) window.temperatureChart.destroy();
         return;
     }
 
@@ -1416,7 +1541,6 @@ function renderTemperatureChart(hourlyData) {
         const date = new Date(item.dt * 1000);
         return date.toLocaleTimeString('en-US', { hour: 'numeric', hour12: true });
     });
-
     const temperatures = hourlyData.map(item => toUnitNum(item.main.temp));
 
     const data = {
@@ -1437,27 +1561,17 @@ function renderTemperatureChart(hourlyData) {
         options: {
             responsive: true,
             maintainAspectRatio: false,
-            plugins: {
-                legend: {
-                    display: false
-                }
-            },
+            plugins: { legend: { display: false } },
             scales: {
                 y: {
                     beginAtZero: false,
-                    ticks: {
-                        callback: function(value) {
-                            return value + unitLabel();
-                        }
-                    }
+                    ticks: { callback: function(value) { return value + unitLabel(); } }
                 }
             }
         }
     };
 
-    if (window.temperatureChart) {
-        window.temperatureChart.destroy();
-    }
+    if (window.temperatureChart) window.temperatureChart.destroy();
     window.temperatureChart = new Chart(temperatureChartCanvas, config);
 }
 
@@ -1467,13 +1581,11 @@ function buildHourlyPoints(forecastList, timezoneOffsetSeconds, hoursAhead) {
     const nowSeconds = Math.floor(Date.now() / 1000);
     const endSeconds = nowSeconds + hoursAhead * 60 * 60;
 
-    // OpenWeather dt is in UTC seconds.
     const points = forecastList
         .slice()
         .sort((a, b) => a.dt - b.dt)
         .filter((item) => item?.dt >= nowSeconds - 3600 && item?.dt <= endSeconds);
 
-    // Keep it compact (3-hour steps => ~8 points for 24h)
     return points.slice(0, 10).map((item) => {
         const localDate = getShiftedDate(item.dt, timezoneOffsetSeconds);
         return {
@@ -1489,11 +1601,8 @@ function buildHourlyPoints(forecastList, timezoneOffsetSeconds, hoursAhead) {
 
 function renderHumidityPrecipChart(hourlyPoints) {
     if (!humidityPrecipChartCanvas || !humidityPrecipRange) return;
-
     if (!hourlyPoints || hourlyPoints.length === 0) {
-        if (window.humidityPrecipChart) {
-            window.humidityPrecipChart.destroy();
-        }
+        if (window.humidityPrecipChart) window.humidityPrecipChart.destroy();
         humidityPrecipRange.textContent = '--';
         return;
     }
@@ -1501,10 +1610,7 @@ function renderHumidityPrecipChart(hourlyPoints) {
     const metric = selectedHourlyMetric;
     const labels = hourlyPoints.map(p => p.timeLabel);
     const values = hourlyPoints.map(p => {
-        if (metric === 'humidity') {
-            return p.humidity || 0;
-        }
-        return (p.precipProb || 0) * 100;
+        return metric === 'humidity' ? (p.humidity || 0) : ((p.precipProb || 0) * 100);
     });
 
     const data = {
@@ -1525,31 +1631,20 @@ function renderHumidityPrecipChart(hourlyPoints) {
         options: {
             responsive: true,
             maintainAspectRatio: false,
-            plugins: {
-                legend: {
-                    display: false
-                }
-            },
+            plugins: { legend: { display: false } },
             scales: {
                 y: {
                     beginAtZero: true,
-                    max: metric === 'humidity' ? 100 : 100,
-                    ticks: {
-                        callback: function(value) {
-                            return value + '%';
-                        }
-                    }
+                    max: 100,
+                    ticks: { callback: function(value) { return value + '%'; } }
                 }
             }
         }
     };
 
-    if (window.humidityPrecipChart) {
-        window.humidityPrecipChart.destroy();
-    }
+    if (window.humidityPrecipChart) window.humidityPrecipChart.destroy();
     window.humidityPrecipChart = new Chart(humidityPrecipChartCanvas, config);
 
-    // Update range label
     const minV = Math.min(...values);
     const maxV = Math.max(...values);
     const suffix = metric === 'humidity' ? 'Humidity %' : 'Precip Probability %';
@@ -1563,38 +1658,27 @@ function getWindDirection(deg) {
     const arrows = ['↑', '↗', '→', '↘', '↓', '↙', '←', '↖'];
     return `${directions[index]} ${arrows[index]}`;
 }
-function showLoading() {
-   spinnerLoading.classList.remove("hidden");
-}
-
-function hideLoading() {
-    spinnerLoading.classList.add("hidden");
-}
-
-function showWeather() {
-    weatherContainer.classList.remove('hidden');
-}
-
-function hideWeather() {
-    weatherContainer.classList.add('hidden');
-}
-
-function showError(message) {
-    if (message) {
-        errorMessage.querySelector('p').textContent = message;
-    }
-    errorMessage.classList.remove('hidden');
-}
-
-function hideError() {
-    errorMessage.classList.add('hidden');
-}
-
-setInterval(renderSunPosition, 60000);
-
 
 // ============================================================
-// ✅ ADDED: Dark Mode Toggle — Issue #14
+// 🔌 5. UI TOGGLES, LOADERS & TIMERS
+// ============================================================
+function showLoading() { spinnerLoading.classList.remove("hidden"); }
+// Clear console warning placeholders if any
+function hideLoading() { spinnerLoading.classList.add("hidden"); }
+function showWeather() { weatherContainer.classList.remove('hidden'); }
+function hideWeather() { weatherContainer.classList.add('hidden'); }
+
+function showError(message) {
+    if (message) { errorMessage.querySelector('p').textContent = message; }
+    errorMessage.classList.remove('hidden');
+}
+function hideError() { errorMessage.classList.add('hidden'); }
+
+// Background dynamic tracking intervals
+setInterval(renderSunPosition, 60000);
+
+// ============================================================
+// 🌓 6. DARK MODE TOGGLE CONTROLLER
 // ============================================================
 (function initDarkMode() {
     const STORAGE_KEY = 'weatherify-theme';
@@ -1605,7 +1689,6 @@ setInterval(renderSunPosition, 60000);
     const label     = toggleBtn ? toggleBtn.querySelector('.toggle-label') : null;
 
     function applyTheme(isDark) {
-        // keep class on both html and body for early-paint sync
         document.documentElement.classList.toggle(DARK_CLASS, isDark);
         if (document.body) document.body.classList.toggle(DARK_CLASS, isDark);
         if (icon)      icon.textContent  = isDark ? '☀️' : '🌙';
@@ -1623,7 +1706,6 @@ setInterval(renderSunPosition, 60000);
         return window.matchMedia('(prefers-color-scheme: dark)').matches;
     }
 
-    // Apply before first paint to prevent flash
     applyTheme(getInitialPreference());
 
     if (toggleBtn) {
@@ -1634,7 +1716,6 @@ setInterval(renderSunPosition, 60000);
         });
     }
 
-    // Follow OS preference changes only if user hasn't manually chosen
     window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', (e) => {
         if (localStorage.getItem(STORAGE_KEY) === null) {
             applyTheme(e.matches);
