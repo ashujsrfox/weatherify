@@ -1769,7 +1769,7 @@ body.dark-mode .unit-btn:not(.active):hover {
     padding: 8px 14px;
     border: 1.5px solid rgba(102, 126, 234, 0.3);
     border-radius: 50px;
-    background: rgba(102021261223,234, 0.08);
+    background: rgba(102, 126, 234, 0.08);
     color: #2d3748;
     font-family: inherit;
     font-size: 14px;
@@ -1786,12 +1786,13 @@ body.dark-mode .unit-btn:not(.active):hover {
 }
 
 body.dark-mode .share-btn {
-    color: #f8fafc
+    color: #f8fafc;
     border-color: rgba(148, 163, 184, 0.4);
-    background: rgba(10102126 12346, 234, 0.22);
+    background: rgba(102, 126, 234, 0.22);
 }
 
-body.dark-mode .share-btn
+.share-menu {
+    position: absolute;
     width: min(220px, 100%);
     margin-top: 10px;
     padding: 12px;
@@ -1811,21 +1812,12 @@ body.dark-mode .share-menu {
     box-shadow: 0 16px 40px rgba(0, 0, 0, 0.45);
 }
 
-body.dark-mode .share-menu-item {
-    background: rgba(255, 255, 255, 0.05);
-    color: #e2e8f0;
-}
-
-body.dark-mode .share-menu-item:hover {
-    background: rgba(255, 255, 255, 0.12);
-}
-
-body.dark-mode .share-status-text {
-    color: #cbd5e1;
-}
-
-.share-menu.hidden {
-    display: none;x;
+.share-menu-item {
+    background: transparent;
+    border: none;
+    padding: 8px 12px;
+    border-radius: 8px;
+    color: #1e293b;
     font-weight: 600;
     text-align: left;
     cursor: pointer;
@@ -1836,10 +1828,27 @@ body.dark-mode .share-status-text {
     background: rgba(102, 126, 234, 0.14);
 }
 
+body.dark-mode .share-menu-item {
+    background: rgba(255, 255, 255, 0.05);
+    color: #e2e8f0;
+}
+
+body.dark-mode .share-menu-item:hover {
+    background: rgba(255, 255, 255, 0.12);
+}
+
 .share-status-text {
     font-size: 12px;
     color: #475569;
     min-height: 18px;
+}
+
+body.dark-mode .share-status-text {
+    color: #cbd5e1;
+}
+
+.share-menu.hidden {
+    display: none;
 }
 
 @media screen and (max-width: 600px) {
@@ -2239,3 +2248,51 @@ body.dark-mode .feels-like-main {
     color: #94a3b8;
 }
 
+/* FIX FOR ISSUE #134: Weather Trends Dark Mode */
+
+body.dark-mode .trend-chart-card {
+    background: linear-gradient(180deg, #1e293b 0%, #0f172a 100%);
+    border-color: rgba(102, 126, 234, 0.2);
+}
+body.dark-mode .trend-chart-card:hover {
+    border-color: #667eea;
+    box-shadow: 0 15px 40px rgba(0, 0, 0, 0.4);
+}
+
+body.dark-mode .trend-stat-card {
+    background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+    border-color: rgba(100, 116, 139, 0.2);
+}
+body.dark-mode .trend-stat-card:hover {
+    border-color: #667eea;
+    box-shadow: 0 10px 28px rgba(0, 0, 0, 0.4);
+}
+
+body.dark-mode .trend-stat-values {
+    color: #94a3b8;
+}
+body.dark-mode .trend-stat-values strong {
+    color: #f1f5f9;
+}
+body.dark-mode .trend-stat-date small {
+    color: #94a3b8;
+}
+
+body.dark-mode .trend-controls {
+    background: rgba(15, 23, 42, 0.6);
+    border-color: rgba(100, 116, 139, 0.4);
+}
+body.dark-mode .trend-toggle {
+    color: #94a3b8;
+}
+body.dark-mode .trend-toggle:hover {
+    background: rgba(30, 41, 59, 0.9);
+    color: #e2e8f0;
+}
+body.dark-mode .trend-toggle.active {
+    color: white;
+}
+
+body.dark-mode .trend-value-label {
+    stroke: #0f172a; 
+}
