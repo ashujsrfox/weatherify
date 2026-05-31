@@ -1786,20 +1786,16 @@ body.dark-mode .unit-btn:not(.active):hover {
 }
 
 body.dark-mode .share-btn {
-    color: #f8fafc
+    color: #f8fafc; /* 👈 Added missing semicolon */
     border-color: rgba(148, 163, 184, 0.4);
-    background: rgba(10102126 12346, 234, 0.22);
-}
-
-body.dark-mode .share-btn
+    background: rgba(15, 23, 42, 0.22); /* 👈 Fixed broken rgba value to a valid dark shade */
     width: min(220px, 100%);
     margin-top: 10px;
     padding: 12px;
     border-radius: 18px;
-    background: white;
     border: 1px solid rgba(148, 163, 184, 0.3);
     box-shadow: 0 16px 40px rgba(15, 23, 42, 0.12);
-    z-index: 10;
+    z-index: 1; /* 👈 Lowered z-index so it doesn't step over chart canvas components */
     display: flex;
     flex-direction: column;
     gap: 8px;
@@ -1825,7 +1821,7 @@ body.dark-mode .share-status-text {
 }
 
 .share-menu.hidden {
-    display: none;x;
+    display: none;
     font-weight: 600;
     text-align: left;
     cursor: pointer;
@@ -2239,3 +2235,48 @@ body.dark-mode .feels-like-main {
     color: #94a3b8;
 }
 
+
+body {
+    transition: background 0.5s ease, color 0.5s ease;
+    background-attachment: fixed;
+}
+
+/* Clear Day - Warm Sun */
+body.theme-clear-day {
+    background: linear-gradient(135deg, #ff7e5f, #feb47b) !important;
+}
+
+/* Clear Night - Deep Blue/Space */
+body.theme-clear-night {
+    background: linear-gradient(135deg, #0f2027, #203a43, #2c5364) !important;
+}
+
+/* Clouds - Soft Grey/Blue-Grey */
+body.theme-clouds {
+    background: linear-gradient(135deg, #ece9e6, #eef2f3, #bdc3c7) !important; /* 👈 Typo fixed here */
+}
+
+/* Rain - Stormy Blue */
+body.theme-rain {
+    background: linear-gradient(135deg, #3a7bd5, #3a6073) !important;
+}
+
+/* Drizzle - Light Misty Blue */
+body.theme-drizzle {
+    background: linear-gradient(135deg, #757f9a, #d7dde8) !important;
+}
+
+/* Thunderstorm - Deep Electric Purple/Dark Grey */
+body.theme-thunderstorm {
+    background: linear-gradient(135deg, #4b6cb7, #182848) !important;
+}
+
+/* Snow - Icy White/Light Teal */
+body.theme-snow {
+    background: linear-gradient(135deg, #e6dada, #274046) !important;
+}
+
+/* Mist / Fog / Haze / Smoke */
+body.theme-mist {
+    background: linear-gradient(135deg, #606c88, #3f2b96) !important;
+}
