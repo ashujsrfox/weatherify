@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Weatherify - Real-Time Weather App</title>
+    <title>Weatherify</title>
 
     <!-- Primary Meta Tags -->
     <meta name="description" content="Get real-time weather updates for any city worldwide with Weatherify." />
@@ -25,6 +25,7 @@
 
     <!-- Theme -->
     <meta name="theme-color" content="#0ea5e9" />
+    <link rel="icon" href="icon.svg">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <script>/* Prevent theme flash: apply saved theme before paint */(function(){try{var k='weatherify-theme';var s=localStorage.getItem(k);if(s===null){s=window.matchMedia&&window.matchMedia('(prefers-color-scheme: dark)').matches? 'dark':'light';}if(s==='dark'){document.documentElement.classList.add('dark-mode');} }catch(e){} })();</script>
     <link rel="stylesheet" href="style.css">
@@ -34,7 +35,6 @@
 </head>
 <body>
 
-    
     <div class="container">
         <div class="weather-app">
             <header>
@@ -49,7 +49,7 @@
                     <button class="unit-btn" data-unit="K">K</button>
                 </div>
                 <div class="search-container">
-                    
+
                     <div class="search-box">
                         <div class="search-input-wrap">
                             <input type="text" id="city-input" placeholder="Enter city name..." autocomplete="off">
@@ -66,7 +66,6 @@
                     <div id="error-message" class="hidden text-red-500 text-sm mt-2">
                         <p>City not found. Please check spelling and try again.</p>
                     </div>
-                    
 
                     <div id="history-dropdown" class="history-dropdown" aria-label="Recent searches and favorites">
                         <div class="history-panel-header">
@@ -78,40 +77,44 @@
                                 <div class="history-section-title">Favorites</div>
                                 <div id="favorite-list" class="history-list"></div>
                             </div>
-
                             <div class="history-section">
                                 <div class="history-section-title">Recent</div>
                                 <div id="recent-list" class="history-list"></div>
                             </div>
-
                             <div class="history-actions">
                                 <button id="clear-history-btn" type="button" class="clear-history-btn hidden">Clear history</button>
                             </div>
                         </div>
                     </div>
-                
 
-            <div id="no-data-message" class="no-data-message">
-                <h2>Welcome to Weatherify ⛅</h2>
-                <p>Search for a city to view its weather forecast</p>
-            </div>
-
-            <div id="loading" class="skeleton-loader hidden">
-                <div class="weather-main">
-                    <div class="temperature-section">
-                        <div class="location-info">
-                            <div class="skeleton-text" style="width: 150px; height: 24px; margin-bottom: 8px;"></div>
-                            <div class="skeleton-text" style="width: 100px; height: 16px;"></div>
-                        </div>
-                        <div class="skeleton-card" style="width: 100px; height: 100px; margin: 20px auto;"></div>
-                        <div class="skeleton-text" style="width: 80px; height: 32px; margin: 10px auto;"></div>
+                    <div id="no-data-message" class="no-data-message">
+                        <h2>Welcome to Weatherify ⛅</h2>
+                        <p>Search for a city to view its weather forecast</p>
                     </div>
-                </div>
-            </div>
+
+                    <!-- SKELETON LOADER -->
+                    <div id="loading" class="skeleton-loader hidden">
+                        <div class="weather-main">
+                            <div class="temperature-section">
+                                <div class="location-info">
+                                    <div class="skeleton-text" style="width: 150px; height: 24px; margin-bottom: 8px;"></div>
+                                    <div class="skeleton-text" style="width: 100px; height: 16px;"></div>
+                                </div>
+                                <div class="skeleton-card" style="width: 100px; height: 100px; margin: 20px auto;"></div>
+                                <div class="skeleton-text" style="width: 80px; height: 32px; margin: 10px auto;"></div>
+                            </div>
+                            <!-- Skeleton for sun card -->
+                            <div class="skeleton-card" style="border-radius: 20px; min-height: 200px;"></div>
+                        </div>
+                    </div>
+
+                </div><!-- end .search-container -->
             </header>
 
 
             <main id="weather-container" class="hidden">
+
+                <!-- Temperature card (full width) -->
                 <div class="weather-main">
                     <div class="temperature-section">
                         <div class="location-info">
@@ -139,26 +142,29 @@
                         <p id="weather-desc">Weather Description</p>
                         <p id="feels-like-main" class="feels-like-main">Feels like --°C</p>
                     </div>
+                </div><!-- end .weather-main -->
 
+                <!-- Sun position card (now below temperature card) -->
+                <div class="sun-position-card">
+                    <div class="sun-position-header">
+                        <h3>Sun Position</h3>
+                        <span id="sun-phase">Daylight</span>
+                    </div>
+                    <div class="sun-track" aria-label="Sun position for searched location">
+                        <div class="sun-track-line"></div>
+                        <div class="sun-track-marker" id="sun-marker">
+                            <span class="sun-icon">&#9728;</span>
+                        </div>
+                    </div>
+                    <div class="sun-position-meta">
+                        <span id="sun-progress">Sunrise in --</span>
+                        <span id="solar-noon">Solar midpoint --:--</span>
+                    </div>
                 </div>
 
+
+                <!-- DETAIL CARDS GRID -->
                 <div class="weather-details">
-                    <div class="sun-position-card">
-                            <div class="sun-position-header">
-                                <h3>Sun Position</h3>
-                                <span id="sun-phase">Daylight</span>
-                            </div>
-                            <div class="sun-track" aria-label="Sun position for searched location">
-                                <div class="sun-track-line"></div>
-                                <div class="sun-track-marker" id="sun-marker">
-                                    <span class="sun-icon">&#9728;</span>
-                                </div>
-                            </div>
-                            <div class="sun-position-meta">
-                                <span id="sun-progress">Sunrise in --</span>
-                                <span id="solar-noon">Solar midpoint --:--</span>
-                            </div>
-                        </div>
 
                     <div class="detail-card">
                         <div class="detail-icon">
@@ -169,6 +175,7 @@
                             <span class="detail-value" id="feels-like">--&deg;C</span>
                         </div>
                     </div>
+
                     <div class="detail-card">
                         <div class="detail-icon">
                             <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
@@ -178,6 +185,7 @@
                             <span class="detail-value" id="humidity">--%</span>
                         </div>
                     </div>
+
                     <div class="detail-card">
                         <div class="detail-icon">
                             <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9.59 4.59A2 2 0 1 1 11 8H2m10.59 11.41A2 2 0 1 0 14 16H2m15.73-8.27A2.5 2.5 0 1 1 19.5 12H2"></path></svg>
@@ -187,6 +195,7 @@
                             <span class="detail-value" id="wind-speed">-- km/h</span>
                         </div>
                     </div>
+
                     <div class="detail-card">
                         <div class="detail-icon">
                             <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line></svg>
@@ -196,6 +205,7 @@
                             <span class="detail-value" id="pressure">-- hPa</span>
                         </div>
                     </div>
+
                     <div class="detail-card">
                         <div class="detail-icon">
                             <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"></circle><path d="M12 2v2"></path><path d="M12 20v2"></path><path d="m4.93 4.93 1.41 1.41"></path><path d="m17.66 17.66 1.41 1.41"></path><path d="M2 12h2"></path><path d="M20 12h2"></path><path d="m6.34 17.66-1.41 1.41"></path><path d="m19.07 4.93-1.41 1.41"></path></svg>
@@ -234,6 +244,7 @@
                             <span class="detail-value" id="sunrise">--:--</span>
                         </div>
                     </div>
+
                     <div class="detail-card">
                         <div class="detail-icon">
                             <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 18a5 5 0 0 0-10 0"></path><line x1="12" y1="2" x2="12" y2="9"></line><line x1="4.22" y1="13.78" x2="5.64" y2="12.36"></line><line x1="1" y1="18" x2="3" y2="18"></line><line x1="21" y1="18" x2="23" y2="18"></line><line x1="18.36" y1="12.36" x2="19.78" y2="13.78"></line><line x1="23" y1="22" x2="1" y2="22"></line></svg>
@@ -243,6 +254,7 @@
                             <span class="detail-value" id="sunset">--:--</span>
                         </div>
                     </div>
+
                     <div class="detail-card">
                         <div class="detail-icon">
                             <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line></svg>
@@ -253,7 +265,7 @@
                         </div>
                     </div>
 
-                </div>
+                </div><!-- end .weather-details -->
 
 
                 <div class="forecast-section">
@@ -269,27 +281,24 @@
 
                     <div class="forecast-graph-card" style="padding-top: 18px;">
                         <div class="graph-header">
-                            <span>Humidity & Precip (Next 24 Hours)</span>
+                            <span>Humidity &amp; Precip (Next 24 Hours)</span>
                             <span id="humidity-precip-range">--</span>
                         </div>
-
                         <div class="hourly-toggle-row" role="group" aria-label="Hourly humidity and precipitation display">
                             <button type="button" class="hourly-toggle active" data-hourly-metric="humidity">Humidity</button>
                             <button type="button" class="hourly-toggle" data-hourly-metric="precip">Precip</button>
                         </div>
-
                         <div class="graph-wrapper" style="height: 220px;">
                             <canvas id="humidity-precip-chart" width="640" height="220" aria-label="Humidity and precipitation forecast chart"></canvas>
                         </div>
                     </div>
 
                     <div>
-                    <h3 class="forecast-title">24-Hour Forecast</h3>
-                    <p class="forecast-subtitle" id="forecast-summary">Upcoming weather trend will appear here.</p>
-                    
-                    <div class="forecast-container" id="forecast-container">
-                        <!-- Hourly forecast cards will be inserted here -->
-                    </div>
+                        <h3 class="forecast-title">24-Hour Forecast</h3>
+                        <p class="forecast-subtitle" id="forecast-summary">Upcoming weather trend will appear here.</p>
+                        <div class="forecast-container" id="forecast-container">
+                            <!-- Hourly forecast cards will be inserted here -->
+                        </div>
                     </div>
                 </div>
 
@@ -325,13 +334,13 @@
                         </div>
                     </div>
                 </section>
-            </main>
+
+            </main><!-- end #weather-container -->
 
             <div id="spinner-loading" class="loading hidden">
                 <div class="spinner"></div>
                 <p>Loading weather data...</p>
             </div>
-
 
         </div>
     </div>
@@ -339,6 +348,3 @@
     <script src="script.js?v=1"></script>
 </body>
 </html>
-
-
-

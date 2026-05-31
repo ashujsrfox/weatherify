@@ -1634,6 +1634,32 @@ setInterval(renderSunPosition, 60000);
         });
     }
 
+    function setWeatherBackground(condition) {
+    const body = document.body;
+
+    switch (condition.toLowerCase()) {
+        case "clear":
+            body.style.background = "linear-gradient(to right, #ff7e5f, #feb47b)";
+            break;
+        case "clouds":
+            body.style.background = "linear-gradient(to right, #bdc3c7, #2c3e50)";
+            break;
+        case "rain":
+            body.style.background = "linear-gradient(to right, #4b79a1, #283e51)";
+            break;
+        case "snow":
+            body.style.background = "linear-gradient(to right, #e6dada, #274046)";
+            break;
+        case "thunderstorm":
+            body.style.background = "linear-gradient(to right, #141e30, #243b55)";
+            break;
+        default:
+            body.style.background = "linear-gradient(to right, #89f7fe, #66a6ff)";
+    }
+}
+
+    setWeatherBackground(data.weather[0].main);
+
     // Follow OS preference changes only if user hasn't manually chosen
     window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', (e) => {
         if (localStorage.getItem(STORAGE_KEY) === null) {
@@ -1641,3 +1667,16 @@ setInterval(renderSunPosition, 60000);
         }
     });
 })();
+
+
+function saveFavorites(favorites) {
+    localStorage.setItem("weatherify-favorites", JSON.stringify(favorites));
+}
+
+function loadFavorites() {
+    return JSON.parse(localStorage.getItem("weatherify-favorites")) || [];
+}
+
+if (favorites.length >= 5) {
+    alert("You can only save up to 5 favorite cities.");
+}
