@@ -780,6 +780,13 @@ window.addEventListener('DOMContentLoaded', () => {
             console.error('Service Worker registration failed:', err);
         });
     }
+   const lastCity = localStorage.getItem('lastCity');
+
+if (lastCity) {
+    fetchWeatherData(lastCity);
+} else {
+    fetchWeatherData(DEFAULT_CITY);
+}
     initHistory();
 
     const params = new URLSearchParams(window.location.search);
